@@ -1,13 +1,20 @@
 import express from "express";
-import { signupSchema,
+import { 
+    signupSchema,
     signinSchema
- } from "common";
+} from "common";
+import prismaClient from "db";
+import { hash } from "bcryptjs";
+import jwt from "jsonwebtoken";
+import { JWT_SECRET } from "./config";
+
+
 const app = express();
 app.use(express.json());
 
 
 
-app.post ('/signup' , (req , res) => {
+app.post ('/signup' , async (req , res) => {
 
     const response = signupSchema.safeParse(req.body);
     if (!response.success) {
@@ -17,23 +24,33 @@ app.post ('/signup' , (req , res) => {
 
     const { username, email, password } = response.data;
 
-    // save to db
+    const existedUser = await prismaClient.user.findUnique({
+        where: {
+            email,
+        },
+    });
+    
+    if(!existedUser) {
+        res.status(400).json({ error: "User not found", success: false });
+        return;
+    }
 
+    const hashedPassword = await hash(password , 10);
 
-
-    res.status(201).json({
-        message: "User created successfully",
-        user: {
+    const user = await prismaClient.user.create({
+        data: {
             username,
             email,
-            password
-        }
-        })
+            password : hashedPassword
+        },
+    });
+
+    res.status(201).json({ success: true, data: user })
     return;
 });
 
 
-app.post('/signin' , (req , res) => {
+app.post('/signin' , async (req , res) => {
 
     const data = signinSchema.safeParse(req.body);
 
@@ -43,7 +60,25 @@ app.post('/signin' , (req , res) => {
     }
 
     const { email, password } = data.data;
-    // authenticate user with db
+
+    const user = await prismaClient.user.findUnique({
+        where: {
+            email,
+        },
+    });
+    
+    if(!user) {
+        res.status(400).json({ error: "User not found", success: false });
+        return;
+    }
+    // check the password with the hashed password in the db
+    const isPasswordValid = await hash(password, user.password);
+    if (!isPasswordValid) {
+        res.status(400).json({ error: "Invalid password", success: false });
+        return;
+    }
+    
+    const token = jwt.sign({ id: user.id }, JWT_SECRET);
 
     res.status(200).json({
         message: "User signed in successfully",
