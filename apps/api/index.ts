@@ -1,12 +1,14 @@
 import express from "express";
 import { 
     signupSchema,
-    signinSchema
+    signinSchema,
+    createEventSchema
 } from "common";
 import prismaClient from "db";
 import { hash } from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "./config";
+import { authMiddleware } from "./middleware";
 
 
 const app = express();
@@ -88,10 +90,44 @@ app.post('/signin' , async (req , res) => {
         }
     })
     return;
-
-
 })
 
+
+app.post ('/event' , authMiddleware , async ( req , res) => {
+
+    const response = createEventSchema.safeParse(req.body);
+    if (!response.success) {
+        res.status(400).json({ error: response.error.errors });
+        return;
+    }
+
+    const { title , description, expiresAt, question, imageurl } = response.data;
+
+
+    // save the event to the database
+    
+    const event = await prismaClient.event.create({
+        data:{
+            title,
+            description,
+            question,
+            expiresAt,
+            thumbnail: imageurl,
+        }
+    });
+
+    res.status(200).json({ success: true, data: event });
+    return;
+})
+
+
+app.post('/order', authMiddleware, async (req, res) => {
+
+    // Implement order creation logic here
+
+    // Use req.user to access the authenticated user
+    res.status(200).json({ message: "Order created successfully" });
+});
 
 
 app.listen(3000, () => {

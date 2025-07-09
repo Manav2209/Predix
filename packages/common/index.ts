@@ -16,9 +16,9 @@ export const signinSchema = z.object({
 export const createEventSchema = z.object({
     title : z.string(),
     description: z.string(),
-    expriesAt : z.string().datetime(),
+    expiresAt : z.string(),
     question: z.string().optional(),
-    imageurl: z.string().optional()
+    imageurl: z.string()
 });
 
 
