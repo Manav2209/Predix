@@ -1,7 +1,10 @@
 import { createClient, type RedisClientType } from "redis";
 import type { MessageToApi } from "./types/MessagetoAPI"
+import type { DbMessage } from "./types/dbMsg";
+import type { WsMessage } from "./types/wsMsg";
 
-export  class RedisManager {
+
+export class RedisManager {
     private client  :RedisClientType
     private static instance : RedisManager
 

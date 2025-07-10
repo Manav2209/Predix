@@ -1,15 +1,16 @@
 {
-  "name": "db_service",
+  "name": "ws",
   "module": "index.ts",
   "type": "module",
   "private": true,
+  "scripts": {
+    "dev": "bun run --watch index.ts",
+    "build": "bun run build.ts"
+  },
   "devDependencies": {
     "@types/bun": "latest"
   },
   "peerDependencies": {
     "typescript": "^5"
-  },
-  "dependencies": {
-    "redis": "^5.6.0"
   }
 }
