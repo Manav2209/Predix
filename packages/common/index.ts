@@ -23,11 +23,19 @@ export const createEventSchema = z.object({
 
 
 export const createOrderSchema = z.object({
-
+    eventId: z.string(),
+    orderType: z.enum(["MARKET", "LIMIT"]),
+    outcome: z.enum(["YES", "NO"]),
+    side: z.enum(["BUY", "SELL"]),
+    quantity: z.number().positive(),
+    price: z.number().positive().optional(), 
 });
 
 export const cancelOrderSchema = z.object({
-
-
+    orderId: z.string(),
 });
 
+export type SignupSchema = z.infer<typeof signupSchema>;
+export type SigninSchema = z.infer<typeof signinSchema>;
+export type CreateOrderSchema = z.infer<typeof createOrderSchema>;
+export type CancelOrderSchema = z.infer<typeof cancelOrderSchema>;
