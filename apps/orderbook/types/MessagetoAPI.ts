@@ -52,7 +52,7 @@ export type MessageToApi = {
 } | {
     type: "EVENT_CREATED"
     payload:{
-        event: string;
+        eventId: string;
         expiresAt: string;
     }
 } | {

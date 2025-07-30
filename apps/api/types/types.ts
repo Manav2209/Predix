@@ -8,7 +8,7 @@ export type MessageToEngine =
   | {
       type: typeof CREATE_ORDER;
       data: {
-        event: string;
+        eventId: string;
         price: number;
         quantity: number;
         side: "BUY" | "SELL";

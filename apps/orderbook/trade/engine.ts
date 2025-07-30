@@ -15,10 +15,11 @@ interface UserBalance {
   available: number;
   locked: number;
 }
+
 export class Engine {
   private orderBook: OrderBook[] = [];
   private balances: Map<string, UserBalance> = new Map();
-  // TODO: Add funcitonalty of locking the YES and NO assets also
+  // TODO: Add functionality of locking the YES and NO assets also
   private positions: Map<string, Map<string, { YES: number; NO: number }>> =
     new Map();
 
@@ -31,6 +32,7 @@ export class Engine {
     this.balances.set(userId, { available: 100, locked: 0 });
     this.positions.set(userId, new Map());
   }
+
   addUser(userId: string) {
     this.balances.set(userId, { available: 100, locked: 0 });
   }
@@ -59,16 +61,17 @@ export class Engine {
           },
         });
         break;
+
       case CREATE_EVENT:
         try {
-        
           console.log(`Message data:`, JSON.stringify(message.data, null, 2));
           // Event To title
           eventIdToTitle.set(message.data.eventId, message.data.title);
 
           console.log("Event ID to title mapping:", eventIdToTitle);
 
-          const newOrderBook = new OrderBook( message.data.title , 0.5, 0.5,);
+          // Pass eventId to OrderBook constructor
+          const newOrderBook = new OrderBook(message.data.title , message.data.eventId, 0.5, 0.5);
 
           console.log("Creating new order book", newOrderBook);
           this.addOrderBook(newOrderBook);
@@ -82,7 +85,7 @@ export class Engine {
 
           // Create initial orders at current price (0.5)
           this.createOrder(
-            message.data.title,
+            message.data.eventId, // Use eventId instead of title
             0.5,
             100,
             "SELL",
@@ -91,7 +94,7 @@ export class Engine {
           );
 
           this.createOrder(
-            message.data.title,
+            message.data.eventId, // Use eventId instead of title
             0.5,
             100,
             "SELL",
@@ -102,7 +105,8 @@ export class Engine {
           RedisManager.getInstance().sendToApi(clientId, {
             type: "EVENT_CREATED",
             payload: {
-              event: message.data.title,
+              
+              eventId: message.data.eventId,
               expiresAt: message.data.expiresAt,
             },
           });
@@ -111,23 +115,12 @@ export class Engine {
           throw error;
         }
         break;
+
       case CREATE_ORDER:
         try {
-          
-          console.log("Message data", message.data);
-          console.log("Event ID to title mapping:", eventIdToTitle);
-
-          // TODO : make orderbook interface change and add eventid field on it this is a temporary fix
-
-          const title = eventIdToTitle.get(message.data.event);
-          if (!title) {
-            throw new Error("No title found for given event ID");
-          }
-          console.log("Title", title);
-
-
+          console.log("Creating order", message.data);
           const { executedQty, fills, orderId } = this.createOrder(
-            message.data.event,
+            message.data.eventId, // This should be eventId
             Number(message.data.price),
             Number(message.data.quantity),
             message.data.side,
@@ -156,30 +149,23 @@ export class Engine {
           throw error;
         }
         break;
+
       case GET_OPEN_ORDERS:
         try {
-
           console.log("Getting open orders for user", message.data.userId);
           console.log("Message data", message.data);
-          console.log("Event ID to title mapping:", eventIdToTitle);
 
-          // TODO : make orderbook interface change and add eventid field on it this is a temporary fix
-
-          const title = eventIdToTitle.get(message.data.event);
-
-
-          if (!title) {
-            throw new Error("No title found for given event ID");
-          }
-
+          // Use eventId directly to find orderbook
           const orderBook = this.orderBook.find(
-            (orderBook) => orderBook.ticker() === title
+            (orderBook) => orderBook.eventId === message.data.eventId
           );
+          
           console.log("Order book", orderBook);
           
           if (!orderBook) {
-            throw new Error("Order book not found");
+            throw new Error(`Order book not found for eventId: ${message.data.eventId}`);
           }
+
           const openOrders = orderBook.getOpenOrders(message.data.userId);
           RedisManager.getInstance().sendToApi(clientId, {
             type: "OPEN_ORDERS",
@@ -190,28 +176,20 @@ export class Engine {
           throw error;
         }
         break;
+
       case GET_DEPTH:
         try {
-          
           console.log("Message data", message.data);
-          console.log("Event ID to title mapping:", eventIdToTitle);
 
-          // TODO : make orderbook interface change and add eventid field on it this is a temporary fix
-
-          const title = eventIdToTitle.get(message.data.event);
-
-
-          if (!title) {
-            throw new Error("No title found for given event ID");
-          }
-
+          // Use eventId directly to find orderbook
           const orderBook = this.orderBook.find(
-            (orderBook) => orderBook.ticker() === title
+            (orderBook) => orderBook.eventId === message.data.eventId
           );
 
           if (!orderBook) {
-            throw new Error("Order book not found");
+            throw new Error(`Order book not found for eventId: ${message.data.eventId}`);
           }
+
           const depth = orderBook.getDepth();
           RedisManager.getInstance().sendToApi(clientId, {
             type: "DEPTH",
@@ -238,66 +216,107 @@ export class Engine {
           });
         }
         break;
+
       case CANCEL_ORDER:
         try {
           const orderId = message.data.orderId;
-          const cancelEvent = message.data.event;
+          const cancelEventId = message.data.eventId; // This should be eventId
+          
+          // Use eventId to find orderbook
           const cancelOrderBook = this.orderBook.find(
-            (orderBook) => orderBook.ticker() === cancelEvent
+            (orderBook) => orderBook.eventId === cancelEventId
           );
+          
           if (!cancelOrderBook) {
-            throw new Error("Order book not found");
+            throw new Error(`Order book not found for eventId: ${cancelEventId}`);
           }
 
           const order = cancelOrderBook
             .getOpenOrders(message.data.userId)
             .find((order) => order.orderId === orderId);
+            
           if (!order) {
             throw new Error("Order not found");
           }
 
           if (order.side === "BUY") {
             const price = cancelOrderBook.cancelBidOrder(order);
-            this.balances.set(message.data.userId, {
-              available:
-                this.balances.get(message.data.userId)!.available +
-                price! * order.quantity,
-              locked:
-                this.balances.get(message.data.userId)!.locked -
-                price! * order.quantity,
-            });
+            if (price !== undefined) {
+              this.balances.set(message.data.userId, {
+                available:
+                  this.balances.get(message.data.userId)!.available +
+                  price * order.quantity,
+                locked:
+                  this.balances.get(message.data.userId)!.locked -
+                  price * order.quantity,
+              });
+            }
           } else {
             const price = cancelOrderBook.cancelAskOrder(order);
-            // TODO: Update the locked assests also
+            // TODO: Update the locked assets also
+            // Need to unlock the YES/NO positions that were locked for this sell order
+            const title = eventIdToTitle.get(cancelEventId);
+            if (title && this.positions.has(message.data.userId)) {
+              const userPositions = this.positions.get(message.data.userId)!;
+              if (userPositions.has(title)) {
+                const eventPositions = userPositions.get(title)!;
+                eventPositions[order.outcome] += order.quantity;
+                userPositions.set(title, eventPositions);
+              }
+            }
           }
+
+          RedisManager.getInstance().sendToApi(clientId, {
+            type: "ORDER_CANCELLED",
+            payload: {
+              orderId: orderId,
+              executedQty: 0,
+              remainingQty: order.quantity,
+            },
+          });
         } catch (e) {
-          console.log("Error hwile cancelling order", e);
-          console.log(e);
+          console.log("Error while cancelling order", e);
+          RedisManager.getInstance().sendToApi(clientId, {
+            type: "ORDER_CANCELLED",
+            payload: {
+              orderId: message.data.orderId,
+              executedQty: 0,
+              remainingQty: 0,
+            },
+          });
         }
         break;
     }
   }
+
   createOrder(
-    event: string,
+    eventId: string, // Changed parameter name to be more clear
     price: number,
     quantity: number,
     side: "BUY" | "SELL",
     userId: string,
     outcome: "YES" | "NO"
   ) {
-    console.log(this.orderBook);
-
     
+    
+    // Use eventId to find orderbook
     const orderBook = this.orderBook.find(
-      (orderBook) => orderBook.ticker() === event
+      (orderBook) => orderBook.eventId === eventId
     );
+    console.log("Order book for eventId", eventId, orderBook);
 
     if (!orderBook) {
-      throw new Error("Order book not found");
+      throw new Error(`Order book not found for eventId: ${eventId}`);
     }
 
-    this.checkAndLockFunds(userId, price, outcome, side, event, quantity);
+    // Get title for position management
+    // const title = eventIdToTitle.get(eventId);
+    // if (!title) {
+    //   throw new Error(`Title not found for eventId: ${eventId}`);
+    // }
 
+    this.checkAndLockFunds(userId, price, outcome, side, eventId, quantity);
+    console.log(this.orderBook);
     const order: Order = {
       price,
       quantity,
@@ -311,14 +330,14 @@ export class Engine {
     const { executedQty, fills } = orderBook.addOrder(order);
 
     console.log("Fills", fills);
-
     console.log("orderBook after adding order", orderBook);
-    this.updateBalances(fills, userId, event, outcome, side);
+    
+    this.updateBalances(fills, userId, eventId, outcome, side);
 
     // Add the WS calls and the DB calls here
-    this.publishDepthUpdates(fills, event, outcome, side, userId);
-    this.createTradeDB(fills, event, outcome, side, userId);
-    this.publishWsTrades(fills,event,userId)
+    this.publishDepthUpdates(fills, eventId, outcome, side, userId);
+    this.createTradeDB(fills, eventId, outcome, side, userId);
+    this.publishWsTrades(fills, eventId, userId);
 
     return {
       executedQty,
@@ -327,28 +346,27 @@ export class Engine {
     };
   }
 
-  
-  publishWsTrades(fills: Fill[], event: string, userId: string){
+  publishWsTrades(fills: Fill[], eventId: string, userId: string) {
     fills.forEach((fill) => {
-      RedisManager.getInstance().publishMessage(`trades@${event}`, {
-        stream: `trades@${event}`,
+      RedisManager.getInstance().publishMessage(`trades@${eventId}`, {
+        stream: `trades@${eventId}`,
         data: {
-          e:"trade",
+          e: "trade",
           price: fill.price.toString(),
           quantity: fill.quantity.toString(),
           timestamp: Date.now(),
-          event,
+          eventId,
           userId,
           outcome: fill.outcome,
           side: fill.side,
         },
       });
-    })
+    });
   }
 
   createTradeDB(
     fills: Fill[],
-    event: string,
+    eventId: string,
     outcome: string,
     side: string,
     userId: string
@@ -362,7 +380,7 @@ export class Engine {
           price: fill.price.toString(),
           quantity: fill.quantity.toString(),
           timestamp: Date.now(),
-          event,
+          eventId, // Use eventId instead of event
           userId,
           outcome: outcome as "YES" | "NO",
           side: side as "BUY" | "SELL",
@@ -371,19 +389,20 @@ export class Engine {
     });
   }
 
-  // TODO: Fix this logic
   publishDepthUpdates(
     fills: Fill[],
-    event: string,
+    eventId: string,
     outcome: string,
     side: string,
     userId: string
   ) {
+    // Use eventId to find orderbook
     const orderBook = this.orderBook.find(
-      (orderBook) => orderBook.ticker() === event
+      (orderBook) => orderBook.eventId === eventId
     );
+    
     if (!orderBook) {
-      throw new Error("Order book not found");
+      throw new Error(`Order book not found for eventId: ${eventId}`);
     }
 
     // Get the CURRENT depth (after the trade has been processed)
@@ -398,48 +417,26 @@ export class Engine {
       asks: { price: number; quantity: number }[];
       bids: { price: number; quantity: number }[];
     };
+    
     let yesUpdates: DepthUpdates = { asks: [], bids: [] };
     let noUpdates: DepthUpdates = { asks: [], bids: [] };
 
-    if (side === "BUY") {
-      if (outcome === "YES") {
-        yesUpdates.asks = depth.YES.asks.filter(
-          (p) => !affectedPrices.includes(p.price.toString())
-        );
-        yesUpdates.bids = depth.YES.bids.filter(
-          (p) => !affectedPrices.includes(p.price.toString())
-        );
-      } else {
-        noUpdates.asks = depth.NO.asks.filter(
-          (p) => !affectedPrices.includes(p.price.toString())
-        );
-        noUpdates.bids = depth.NO.bids.filter(
-          (p) => !affectedPrices.includes(p.price.toString())
-        );
-      }
-    } else {
-      if (outcome === "YES") {
-        yesUpdates.asks = depth.YES.asks.filter(
-          (p) => !affectedPrices.includes(p.price.toString())
-        );
-        yesUpdates.bids = depth.YES.bids.filter(
-          (p) => !affectedPrices.includes(p.price.toString())
-        );
-      } else {
-        noUpdates.asks = depth.NO.asks.filter(
-          (p) => !affectedPrices.includes(p.price.toString())
-        );
-        noUpdates.bids = depth.NO.bids.filter(
-          (p) => !affectedPrices.includes(p.price.toString())
-        );
-      }
-    }
+    // Fixed logic: Send ALL current depth, not filtered
+    yesUpdates = {
+      asks: depth.YES.asks,
+      bids: depth.YES.bids,
+    };
+    
+    noUpdates = {
+      asks: depth.NO.asks,
+      bids: depth.NO.bids,
+    };
 
     // Update the depth in Redis
-    RedisManager.getInstance().publishMessage(`depth@${event}`, {
-      stream: `depth@${event}`,
+    RedisManager.getInstance().publishMessage(`depth@${eventId}`, {
+      stream: `depth@${eventId}`,
       data: {
-        e:"depth",
+        e: "depth",
         YES: {
           bids: yesUpdates.bids,
           asks: yesUpdates.asks,
@@ -455,7 +452,7 @@ export class Engine {
   updateBalances(
     fills: Fill[],
     userId: string,
-    event: string,
+    eventId: string, // This is the title/event name for position management
     outcome: "YES" | "NO",
     side: "BUY" | "SELL"
   ) {
@@ -472,7 +469,7 @@ export class Engine {
         });
 
         // Update positions for the buyer
-        this.updatePosition(userId, event, outcome, fill.quantity);
+        this.updatePosition(userId, eventId, outcome, fill.quantity);
 
         // Handle counterparty's balance - seller receives payment
         this.balances.set(fill.otherUserId, {
@@ -482,7 +479,7 @@ export class Engine {
         });
 
         // Update positions for the seller (counterparty)
-        this.updatePosition(fill.otherUserId, event, outcome, -fill.quantity);
+        this.updatePosition(fill.otherUserId, eventId, outcome, -fill.quantity);
       } else {
         // SELL
         // When selling, user receives payment
@@ -492,7 +489,7 @@ export class Engine {
         });
 
         // Update positions for the seller
-        this.updatePosition(userId, event, outcome, -fill.quantity);
+        this.updatePosition(userId, eventId, outcome, -fill.quantity);
 
         // Handle counterparty's balance - buyer's locked funds are converted to position value
         this.balances.set(fill.otherUserId, {
@@ -501,7 +498,7 @@ export class Engine {
         });
 
         // Update positions for the buyer (counterparty)
-        this.updatePosition(fill.otherUserId, event, outcome, fill.quantity);
+        this.updatePosition(fill.otherUserId, eventId, outcome, fill.quantity);
       }
     });
   }
@@ -536,7 +533,7 @@ export class Engine {
     price: number,
     outcome: "YES" | "NO",
     side: "BUY" | "SELL",
-    event: string,
+    eventId: string,
     quantity: number
   ) {
     try {
@@ -555,7 +552,7 @@ export class Engine {
       } else {
         // Check if the order book has enough YES or NO volume
         const orderBook = this.orderBook.find(
-          (orderBook) => orderBook.ticker() === event
+          (orderBook) => orderBook.eventId === eventId
         );
         if (!orderBook) {
           throw new Error("Order book not found");
@@ -563,21 +560,21 @@ export class Engine {
 
         if (
           !this.positions.has(userId) ||
-          !this.positions.get(userId)!.has(event)
+          !this.positions.get(userId)!.has(eventId)
         ) {
           throw new Error("No positions found for this event");
         }
 
         if (outcome === "YES") {
-          if (this.positions.get(userId)!.get(event)!.YES < quantity) {
+          if (this.positions.get(userId)!.get(eventId)!.YES < quantity) {
             throw new Error("Insufficient YES positions");
           }
-          this.positions.get(userId)!.get(event)!.YES -= quantity;
+          this.positions.get(userId)!.get(eventId)!.YES -= quantity;
         } else {
-          if (this.positions.get(userId)!.get(event)!.NO < quantity) {
+          if (this.positions.get(userId)!.get(eventId)!.NO < quantity) {
             throw new Error("Insufficient NO positions");
           }
-          this.positions.get(userId)!.get(event)!.NO -= quantity;
+          this.positions.get(userId)!.get(eventId)!.NO -= quantity;
         }
       }
     } catch (error) {

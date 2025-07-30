@@ -18,7 +18,7 @@ export type MessageFromAPI= {
 } | {
     type: typeof CREATE_ORDER
     data:{
-        event: string;
+        eventId: string;
         price: string;
         quantity: string;
         side: "BUY" | "SELL";
@@ -29,19 +29,19 @@ export type MessageFromAPI= {
     type: typeof CANCEL_ORDER
     data:{
         orderId: string;
-        event: string;
+        eventId: string;
         userId: string;
     }
 } | {
     type: typeof GET_OPEN_ORDERS
     data:{
-        event: string;
+        eventId: string;
         userId: string;
     }
 } | {
     type: typeof GET_DEPTH
     data:{
-        event: string;
+        eventId: string;
     }
 } | {
     type: typeof CREATE_USER

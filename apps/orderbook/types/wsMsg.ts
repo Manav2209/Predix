@@ -20,7 +20,7 @@ export type DepthUpdateMessage = {
       price: string;
       quantity: string;
       timestamp: number;
-      event: string;
+      eventId: string;
       userId: string;
       outcome: "YES" | "NO";
       side: "BUY" | "SELL";

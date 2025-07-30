@@ -36,7 +36,11 @@ export class OrderBook {
     lastTradeTime: number = 0;
     title: string;
 
-    constructor(title: string , currentYesPrice: number = 0, currentNoPrice: number = 0) {
+    //Check if error comes:
+    eventId: string;
+
+    constructor(title: string , eventId : string , currentYesPrice: number = 0, currentNoPrice: number = 0) {
+        this.eventId = eventId;
         this.title = title;
         this.currentYesPrice = currentYesPrice;
         this.currentNoPrice = currentNoPrice;

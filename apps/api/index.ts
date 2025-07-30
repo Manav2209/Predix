@@ -237,7 +237,7 @@ app.post('/order', authMiddleware, async (req, res) => {
     const messageToSend: MessageToEngine = {
         type: CREATE_ORDER,
         data :{
-            event: eventId,
+            eventId: eventId,
             price: price || 0, // Use 0 for market orders
             quantity,
             side, // Assuming req.user is set by authMiddleware
