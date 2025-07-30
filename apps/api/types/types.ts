@@ -39,6 +39,7 @@ export type MessageToEngine =
   | {
       type: typeof CREATE_EVENT;
       data: {
+        eventId: string;
         title: string;
         expiresAt: string;
       };

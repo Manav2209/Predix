@@ -21,7 +21,7 @@ export interface Fill {
     tradeId: number;
 
 }
-
+export const eventIdToTitle = new Map<string, string>();
 export class OrderBook {
     YES_BIDS : Order[] = [];
     YES_ASKS : Order[] = [];

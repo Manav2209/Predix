@@ -1,12 +1,14 @@
 import { SUBSCRIBE, UNSUBSCRIBE, type IncomingMessage } from "./types/in";
 import { SubscriptionManager } from "./SubscriptionManager";
-import { WebSocket } from "ws";
+
 
 export class User {
   private id: string;
   private ws: WebSocket;
 
-  constructor(id: string, ws: WebSocket) {
+  //TODO : fix the type of ws
+  
+  constructor(id: string, ws: any) {
     this.id = id;
     this.ws = ws;
     this.addListener();
@@ -28,6 +30,7 @@ export class User {
     this.ws.send(JSON.stringify(message));
   }
   private addListener() {
+    // @ts-ignore
     this.ws.on("message", (message: string) => {
       const parsedMessage: IncomingMessage = JSON.parse(message);
       if (parsedMessage.method === SUBSCRIBE) {

@@ -9,7 +9,7 @@ import {
   GET_OPEN_ORDERS,
   type MessageFromAPI,
 } from "../types/MessageFromApi";
-import { OrderBook, type Fill, type Order } from "./orderBook";
+import { eventIdToTitle, OrderBook, type Fill, type Order } from "./orderBook";
 
 interface UserBalance {
   available: number;
@@ -61,7 +61,16 @@ export class Engine {
         break;
       case CREATE_EVENT:
         try {
+        
+          console.log(`Message data:`, JSON.stringify(message.data, null, 2));
+          // Event To title
+          eventIdToTitle.set(message.data.eventId, message.data.title);
+
+          console.log("Event ID to title mapping:", eventIdToTitle);
+
           const newOrderBook = new OrderBook( message.data.title , 0.5, 0.5,);
+
+          console.log("Creating new order book", newOrderBook);
           this.addOrderBook(newOrderBook);
 
           // Add initial market maker positions
@@ -80,6 +89,7 @@ export class Engine {
             platformUserId,
             "YES"
           );
+
           this.createOrder(
             message.data.title,
             0.5,
@@ -103,6 +113,19 @@ export class Engine {
         break;
       case CREATE_ORDER:
         try {
+          
+          console.log("Message data", message.data);
+          console.log("Event ID to title mapping:", eventIdToTitle);
+
+          // TODO : make orderbook interface change and add eventid field on it this is a temporary fix
+
+          const title = eventIdToTitle.get(message.data.event);
+          if (!title) {
+            throw new Error("No title found for given event ID");
+          }
+          console.log("Title", title);
+
+
           const { executedQty, fills, orderId } = this.createOrder(
             message.data.event,
             Number(message.data.price),
@@ -135,9 +158,25 @@ export class Engine {
         break;
       case GET_OPEN_ORDERS:
         try {
+
+          console.log("Getting open orders for user", message.data.userId);
+          console.log("Message data", message.data);
+          console.log("Event ID to title mapping:", eventIdToTitle);
+
+          // TODO : make orderbook interface change and add eventid field on it this is a temporary fix
+
+          const title = eventIdToTitle.get(message.data.event);
+
+
+          if (!title) {
+            throw new Error("No title found for given event ID");
+          }
+
           const orderBook = this.orderBook.find(
-            (orderBook) => orderBook.ticker() === message.data.event
+            (orderBook) => orderBook.ticker() === title
           );
+          console.log("Order book", orderBook);
+          
           if (!orderBook) {
             throw new Error("Order book not found");
           }
@@ -153,9 +192,23 @@ export class Engine {
         break;
       case GET_DEPTH:
         try {
+          
+          console.log("Message data", message.data);
+          console.log("Event ID to title mapping:", eventIdToTitle);
+
+          // TODO : make orderbook interface change and add eventid field on it this is a temporary fix
+
+          const title = eventIdToTitle.get(message.data.event);
+
+
+          if (!title) {
+            throw new Error("No title found for given event ID");
+          }
+
           const orderBook = this.orderBook.find(
-            (orderBook) => orderBook.ticker() === message.data.event
+            (orderBook) => orderBook.ticker() === title
           );
+
           if (!orderBook) {
             throw new Error("Order book not found");
           }
@@ -233,6 +286,8 @@ export class Engine {
     outcome: "YES" | "NO"
   ) {
     console.log(this.orderBook);
+
+    
     const orderBook = this.orderBook.find(
       (orderBook) => orderBook.ticker() === event
     );

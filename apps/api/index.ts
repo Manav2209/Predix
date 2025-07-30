@@ -16,14 +16,15 @@ import {
     CREATE_USER,
     GET_DEPTH,
     GET_OPEN_ORDERS,
-    CANCEL_ORDER
+    CANCEL_ORDER,
     type MessageToEngine,
-  } from "./types/types";
+} from "./types/types";
 import { RedisManager } from "./RedisManager";
-  
+import cors from "cors";
 
 const app = express();
 app.use(express.json());
+app.use(cors())
 
 
 app.post ('/signup' , async (req , res) => {
@@ -42,18 +43,18 @@ app.post ('/signup' , async (req , res) => {
         },
     });
     
-    if(!existedUser) {
-        res.status(400).json({ error: "User not found", success: false });
+    if(existedUser) {
+        res.status(400).json({ error: "Already useris there with this email found", success: false });
         return;
     }
 
-    const hashedPassword = await hash(password , 10);
+    
 
     const user = await prismaClient.user.create({
         data: {
             username,
             email,
-            password : hashedPassword
+            password 
         },
     });
 
@@ -99,21 +100,11 @@ app.post('/signin' , async (req , res) => {
         return;
     }
     // check the password with the hashed password in the db
-    const isPasswordValid = await hash(password, user.password);
-    if (!isPasswordValid) {
-        res.status(400).json({ error: "Invalid password", success: false });
-        return;
-    }
+    
     
     const token = jwt.sign({ id: user.id }, JWT_SECRET);
 
-    res.status(200).json({
-        message: "User signed in successfully",
-        user: {
-            email,
-            password
-        }
-    })
+    res.status(200).json({ success: true, data: token });
     return;
 })
 // To get events 
@@ -156,57 +147,71 @@ app.get("/event/:eventId", async (req, res) => {
   
 
 // To post a new event
-app.post ('/event' , authMiddleware , async ( req , res) => {
+app.post("/event", authMiddleware, async (req, res) => {
+        console.log(req.body);
+        const data = createEventSchema.safeParse(req.body);
 
-    const response = createEventSchema.safeParse(req.body);
-    if (!response.success) {
-        res.status(400).json({ error: response.error.errors });
-        return;
-    }
-
-    const { title , description, expiresAt, question, imageurl } = response.data;
-
-
-    // save the event to the database
+        if(!req.userId){
+            res.status(401).json({ error: "Unauthorized", success: false });
+            return;
+        }
     
-    const event = await prismaClient.event.create({
-        data:{
+    
+        if (!data.success) {
+        res.status(400).json({ error: data.error, success: false });
+        return;
+        }
+    
+        const { title, description, expiresAt, imageurl, question } = data.data;
+    
+        const event = await prismaClient.event.create({
+        data: {
             title,
             description,
-            question,
             expiresAt,
-            thumbnail: imageurl,
+            thumbnail:imageurl,
+            question,
+        },
+        });
+    
+        if (!event) {
+        res.status(400).json({ error: "Event creation failed", success: false });
         }
-    });
 
         const messageToSend: MessageToEngine = {
-            type: CREATE_EVENT,
-            data: {
+        type: CREATE_EVENT,
+        data: {
+            eventId: event.id,
             title,
             expiresAt: event.expiresAt.toISOString(),
-            },
+        },
         };
-
-        const response1 = await RedisManager.getInstance().sendAndAwait(messageToSend);
-
-        console.log("Response from orderbooks:", response1);
-
-    if (!response) {
+        console.log("message to send", messageToSend);
+    
+        const response = await RedisManager.getInstance().sendAndAwait(messageToSend);
+    
+        console.log("response from orderbook", response);
+        if (!response) {
         await prismaClient.event.delete({
             where: { id: event.id },
-            });
+        });
         res.status(400).json({ error: "Orderbook not responding", success: false });
         return;
         }
-
-    res.status(200).json({ success: true, data: event });
-    return;
-})
+    
+        res.status(200).json({ success: true, data: event });
+        return;
+});
 
 // To create an order
 app.post('/order', authMiddleware, async (req, res) => {
 
     const response = createOrderSchema.safeParse(req.body);
+
+    if(!req.userId){
+        res.status(401).json({ error: "Unauthorized", success: false });
+        return;
+    }
 
     if (!response.success) {
         res.status(400).json({ error: response.error.errors });
@@ -237,8 +242,7 @@ app.post('/order', authMiddleware, async (req, res) => {
             quantity,
             side, // Assuming req.user is set by authMiddleware
             outcome,
-            // @ts-ignore
-            userId: req.user.id, // Use the authenticated user's ID
+            userId: req.userId, // Use the authenticated user's ID
         }
     }
 
@@ -258,6 +262,11 @@ app.post('/order', authMiddleware, async (req, res) => {
 //to get an orderbook for a specific event
 app.get("/orderbook/:eventId",  authMiddleware ,async (req, res) => {
     const { eventId } = req.params;
+
+    if(!req.userId){
+        res.status(401).json({ error: "Unauthorized", success: false });
+        return;
+    }
 
     const event = await prismaClient.event.findUnique({
         where: { id: eventId },
@@ -306,8 +315,8 @@ app.get("/orderbook/:eventId",  authMiddleware ,async (req, res) => {
         type: GET_OPEN_ORDERS,
         data: {
             event: eventId,
-            // @ts-ignore
-            userId: req.user.id, // Use the authenticated user's ID
+            
+            userId: req.userId, // Use the authenticated user's ID
         },
     };
 
@@ -358,6 +367,11 @@ app.get("/depth/:eventId", async (req, res) => {
 app.delete('/order/:orderId', authMiddleware, async (req, res) => {
     const { orderId} = req.params;
 
+    if(!req.userId){
+        res.status(401).json({ error: "Unauthorized", success: false });
+        return;
+    }
+
     // Check if the order exists
     const order = await prismaClient.order.findUnique({
         where: { id: orderId },
@@ -368,14 +382,11 @@ app.delete('/order/:orderId', authMiddleware, async (req, res) => {
         return;
     }
     // Check if the user is authorized to cancel this order
-    //@ts-ignore
-    if (order.userId !== req.user.id) {
+    
+    if (order.userId !== req.userId) {
         res.status(403).json({ error: "You are not authorized to cancel this order", success: false });
         return;
     }
-
-
-
     // Send a message to Redis to cancel the order
     
     const messageToSend: MessageToEngine = {
@@ -399,3 +410,4 @@ app.delete('/order/:orderId', authMiddleware, async (req, res) => {
 app.listen(3000, () => {
     console.log("API Server is running on port 3000");
 })
+

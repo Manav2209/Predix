@@ -11,6 +11,7 @@ export const GET_DEPTH = "GET_DEPTH";
 export type MessageFromAPI= {
     type: typeof CREATE_EVENT
     data:{
+        eventId : string;
         title: string;
         expiresAt: string;
     }
