@@ -314,8 +314,7 @@ app.get("/orderbook/:eventId",  authMiddleware ,async (req, res) => {
     const messageToSend: MessageToEngine = {
         type: GET_OPEN_ORDERS,
         data: {
-            event: eventId,
-            
+            eventId: eventId,
             userId: req.userId, // Use the authenticated user's ID
         },
     };
@@ -348,7 +347,7 @@ app.get("/depth/:eventId", async (req, res) => {
     const messageToSend: MessageToEngine = {
         type: GET_DEPTH,
         data: {
-            event: eventId,
+            eventId: eventId,
         },
     };
 
@@ -393,7 +392,7 @@ app.delete('/order/:orderId', authMiddleware, async (req, res) => {
         type: CANCEL_ORDER,
         data: {
             orderId: orderId!,      
-            event: order.eventId
+            eventId: order.eventId
         },
     };
 

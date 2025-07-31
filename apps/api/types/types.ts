@@ -20,19 +20,19 @@ export type MessageToEngine =
       type: typeof CANCEL_ORDER;
       data: {
         orderId: string;
-        event: string;
+        eventId: string;
       };
     }
   | {
       type: typeof GET_DEPTH;
       data: {
-        event: string;
+        eventId: string;
       };
     }
   | {
       type: typeof GET_OPEN_ORDERS;
       data: {
-        event: string;
+        eventId: string;
         userId: string;
       };
     }

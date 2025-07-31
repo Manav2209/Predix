@@ -35,7 +35,6 @@ export class OrderBook {
     lastTradeId: number = 0;
     lastTradeTime: number = 0;
     title: string;
-
     //Check if error comes:
     eventId: string;
 
@@ -78,118 +77,128 @@ export class OrderBook {
     }
   
     matchBuyOrder(order: Order): { executedQty: number; fills: Fill[] } {    
-        let fills : Fill[] = [];
-        let executedQty = 0;
+      let fills: Fill[] = [];
+      let executedQty = 0;
+  
+      if (order.outcome === "YES") {
+          if (this.YES_ASKS.length === 0) {
+              return { executedQty, fills };
+          }
+          
+          for (let i = 0; i < this.YES_ASKS.length; i++) {
+              if (
+                  this.YES_ASKS[i]!.price <= order.price && executedQty < order.quantity 
+              ) {
+                  if (this.YES_ASKS[i]?.userId === order.userId) {
+                      continue; // Skip self-trades
+                  }
+                  
+                  const filledQty = Math.min(
+                      this.YES_ASKS[i]!.quantity - this.YES_ASKS[i]!.filled, // Use remaining quantity
+                      order.quantity - executedQty
+                  );
+                  
+                  executedQty += filledQty;
+                  this.YES_ASKS[i]!.filled += filledQty;
+  
+                  fills.push({
+                      price: this.YES_ASKS[i]!.price,
+                      quantity: filledQty,
+                      tradeId: this.lastTradeId++,
+                      otherUserId: this.YES_ASKS[i]!.userId,
+                      userId: order.userId,
+                      outcome: "YES",
+                      orderId: this.YES_ASKS[i]!.orderId,
+                      side: 'BUY'
+                  });
+              }
+          }
+  
+          // Remove completely filled orders AND update remaining quantities
+          for (let i = this.YES_ASKS.length - 1; i >= 0; i--) {
+              if (this.YES_ASKS[i]!.quantity === this.YES_ASKS[i]!.filled) {
+                  this.YES_ASKS.splice(i, 1);
+              } else {
+                  // Update the remaining quantity for partially filled orders
+                  this.YES_ASKS[i]!.quantity = this.YES_ASKS[i]!.quantity - this.YES_ASKS[i]!.filled;
+                  this.YES_ASKS[i]!.filled = 0; // Reset filled to 0 for the remaining quantity
+              }
+          }
+  
+          return { executedQty, fills };
+      } else {
+          if (this.NO_ASKS.length === 0) {
+              return { executedQty, fills };
+          }
+          
+          for (let i = 0; i < this.NO_ASKS.length; i++) {
+              if (
+                  this.NO_ASKS[i]!.price <= order.price && executedQty < order.quantity 
+              ) {
+                  if (this.NO_ASKS[i]?.userId === order.userId) {
+                      continue; // Skip self-trades
+                  }
+                  
+                  const filledQty = Math.min(
+                      this.NO_ASKS[i]!.quantity - this.NO_ASKS[i]!.filled, // Use remaining quantity
+                      order.quantity - executedQty
+                  );
+                  
+                  executedQty += filledQty;
+                  this.NO_ASKS[i]!.filled += filledQty;
+  
+                  fills.push({
+                      price: this.NO_ASKS[i]!.price,
+                      quantity: filledQty,
+                      tradeId: this.lastTradeId++,
+                      otherUserId: this.NO_ASKS[i]!.userId,
+                      userId: order.userId,
+                      outcome: "NO", // Fixed: should be NO, not YES
+                      orderId: this.NO_ASKS[i]!.orderId,
+                      side: 'BUY'
+                  });
+              }
+          }
+  
+          // Remove completely filled orders AND update remaining quantities
+          for (let i = this.NO_ASKS.length - 1; i >= 0; i--) {
+              if (this.NO_ASKS[i]!.quantity === this.NO_ASKS[i]!.filled) {
+                  this.NO_ASKS.splice(i, 1);
+              } else {
+                  // Update the remaining quantity for partially filled orders
+                  this.NO_ASKS[i]!.quantity = this.NO_ASKS[i]!.quantity - this.NO_ASKS[i]!.filled;
+                  this.NO_ASKS[i]!.filled = 0; // Reset filled to 0 for the remaining quantity
+              }
+          }
+  
+          return { executedQty, fills };
+      }
+  }
+  
+  matchSellOrder(order: Order): { executedQty: number; fills: Fill[] } {
+    let fills: Fill[] = [];
+    let executedQty = 0;
 
-        if(order.outcome === "YES") {
-            if(this.YES_ASKS.length === 0){
-                return { executedQty, fills };
-            }
-        
-        
-        for ( let i =0 ; i<this.YES_ASKS.length ; i++) {
-            if(
-                this.YES_ASKS[i]!.price <= order.price && executedQty < order.quantity 
-            ){
-                if(this.YES_ASKS[i]?.userId === order.userId) {
-                    continue; // Skip self-trades
-                }
-                
-                const filledQty = Math.min(
-                    this.YES_ASKS[i]!.quantity, order.quantity - executedQty
-                )
-                executedQty += filledQty ;
-                this.YES_ASKS[i]!.filled += filledQty;
-
-                fills.push({
-                    price : this.YES_ASKS[i]!.price,
-                    quantity : filledQty,
-                    tradeId : this.lastTradeId++,
-                    otherUserId : this.YES_ASKS[i]!.userId,
-                    userId : order.userId,
-                    outcome:"YES",
-                    orderId : this.YES_ASKS[i]!.orderId,
-                    side: 'BUY'
-                });
-            }
-        }
-
-        for (let i = 0; i < this.YES_ASKS.length; i++) {
-            if (this.YES_ASKS[i]!.quantity === this.YES_ASKS[i]!.filled) {
-                this.YES_ASKS.splice(i, 1);
-                i--;
-            }
-        }
-
-        return { executedQty, fills };
-    }else{
-        if(this.NO_ASKS.length === 0){
+    if (order.outcome === "YES") {
+        if (this.YES_BIDS.length === 0) {
             return { executedQty, fills };
         }
     
-    
-    for ( let i =0 ; i<this.NO_ASKS.length ; i++) {
-        if(
-            this.NO_ASKS[i]!.price <= order.price && executedQty < order.quantity 
-        ){
-            if(this.NO_ASKS[i]?.userId === order.userId) {
-                continue; // Skip self-trades
-            }
-            
-            const filledQty = Math.min(
-                this.NO_ASKS[i]!.quantity, order.quantity - executedQty
-            )
-            executedQty += filledQty ;
-            this.NO_ASKS[i]!.filled += filledQty;
-
-            fills.push({
-                price : this.NO_ASKS[i]!.price,
-                quantity : filledQty,
-                tradeId : this.lastTradeId++,
-                otherUserId : this.NO_ASKS[i]!.userId,
-                userId : order.userId,
-                outcome:"YES",
-                orderId : this.NO_ASKS[i]!.orderId,
-                side: 'BUY'
-            });
-        }
-    }
-
-    for (let i = 0; i < this.NO_ASKS.length; i++) {
-        if (this.NO_ASKS[i]!.quantity === this.NO_ASKS[i]!.filled) {
-            this.NO_ASKS.splice(i, 1);
-            i--;
-        }
-    }
-
-    return { executedQty, fills };
-        }
-    }
-
-    matchSellOrder(order: Order): { executedQty: number; fills: Fill[] } {
-        let fills: Fill[] = [];
-        let executedQty = 0;
-    
-            if (order.outcome === "YES") {
-            if (this.YES_BIDS.length === 0) {
-                return { executedQty, fills };
-            }
-        
-            for (let i = 0; i < this.YES_BIDS.length; i++) {
-                if(this.YES_BIDS[i]!.userId === order.userId){
+        for (let i = 0; i < this.YES_BIDS.length; i++) {
+            if (this.YES_BIDS[i]!.userId === order.userId) {
                 continue;
-                }
-                if (
+            }
+            if (
                 this.YES_BIDS[i]!.price >= order.price &&
                 executedQty < order.quantity
-                ) {
+            ) {
                 const filledQty = Math.min(
-                    this.YES_BIDS[i]!.quantity,
+                    this.YES_BIDS[i]!.quantity - this.YES_BIDS[i]!.filled, // Use remaining quantity
                     order.quantity - executedQty
                 );
                 executedQty += filledQty;
                 this.YES_BIDS[i]!.filled += filledQty;
-        
+    
                 fills.push({
                     price: this.YES_BIDS[i]!.price,
                     quantity: filledQty,
@@ -200,36 +209,40 @@ export class OrderBook {
                     side: "SELL",
                     userId: order.userId,
                 });
-                }
             }
-        
-            for (let i = 0; i < this.YES_BIDS.length; i++) {
-                if (this.YES_BIDS[i]!.quantity === this.YES_BIDS[i]!.filled) {
+        }
+    
+        // Remove completely filled orders AND update remaining quantities
+        for (let i = this.YES_BIDS.length - 1; i >= 0; i--) {
+            if (this.YES_BIDS[i]!.quantity === this.YES_BIDS[i]!.filled) {
                 this.YES_BIDS.splice(i, 1);
-                i--;
-                }
-            }
-            return { executedQty, fills };
             } else {
-            if (this.NO_BIDS.length === 0) {
-                return { executedQty, fills };
+                // Update the remaining quantity for partially filled orders
+                this.YES_BIDS[i]!.quantity = this.YES_BIDS[i]!.quantity - this.YES_BIDS[i]!.filled;
+                this.YES_BIDS[i]!.filled = 0; // Reset filled to 0 for the remaining quantity
             }
-        
-            for (let i = 0; i < this.NO_BIDS.length; i++) {
-                if(this.NO_BIDS[i]!.userId === order.userId){
+        }
+        return { executedQty, fills };
+    } else {
+        if (this.NO_BIDS.length === 0) {
+            return { executedQty, fills };
+        }
+    
+        for (let i = 0; i < this.NO_BIDS.length; i++) {
+            if (this.NO_BIDS[i]!.userId === order.userId) {
                 continue;
-                }
-                if (
-                this.NO_BIDS[i]!.price <= order.price &&
+            }
+            if (
+                this.NO_BIDS[i]!.price >= order.price && // Fixed: should be >= for sell orders
                 executedQty < order.quantity
-                ) {
+            ) {
                 const filledQty = Math.min(
-                    this.NO_BIDS[i]!.quantity,
+                    this.NO_BIDS[i]!.quantity - this.NO_BIDS[i]!.filled, // Use remaining quantity
                     order.quantity - executedQty
                 );
                 executedQty += filledQty;
                 this.NO_BIDS[i]!.filled += filledQty;
-        
+    
                 fills.push({
                     price: this.NO_BIDS[i]!.price,
                     quantity: filledQty,
@@ -240,18 +253,22 @@ export class OrderBook {
                     side: "SELL",
                     userId: order.userId,
                 });
-                }
             }
-        
-            for (let i = 0; i < this.NO_BIDS.length; i++) {
-                if (this.NO_BIDS[i]!.quantity === this.NO_BIDS[i]!.filled) {
-                this.NO_BIDS.splice(i, 1);
-                i--;
-                }
-            }
-            return { executedQty, fills };
         }
+    
+        // Remove completely filled orders AND update remaining quantities
+        for (let i = this.NO_BIDS.length - 1; i >= 0; i--) {
+            if (this.NO_BIDS[i]!.quantity === this.NO_BIDS[i]!.filled) {
+                this.NO_BIDS.splice(i, 1);
+            } else {
+                // Update the remaining quantity for partially filled orders
+                this.NO_BIDS[i]!.quantity = this.NO_BIDS[i]!.quantity - this.NO_BIDS[i]!.filled;
+                this.NO_BIDS[i]!.filled = 0; // Reset filled to 0 for the remaining quantity
+            }
+        }
+        return { executedQty, fills };
     }
+} 
 
     getDepth() {
         let YES_BIDS: { [key: string]: number } = {};
@@ -259,7 +276,7 @@ export class OrderBook {
         let NO_BIDS: { [key: string]: number } = {};
         let NO_ASKS: { [key: string]: number } = {};
     
-       
+      
         for (let i = 0; i < this.YES_BIDS.length; i++) {
           const order = this.YES_BIDS[i];
           if (!YES_BIDS[order!.price]) {

@@ -18,10 +18,15 @@ interface UserBalance {
 
 export class Engine {
   private orderBook: OrderBook[] = [];
+  // Structure would be { "userid": UserBalance }
   private balances: Map<string, UserBalance> = new Map();
   // TODO: Add functionality of locking the YES and NO assets also
-  private positions: Map<string, Map<string, { YES: number; NO: number }>> =
-    new Map();
+  // positions = Map{
+    // "user123" => Map {
+    //   "event_abc123" => { YES: 50, NO: 20 },
+    //   "event_def456" => { YES: 0, NO: 100 }
+    // }
+  private positions: Map<string, Map<string, { YES: number; NO: number }>> = new Map();
 
   addOrderBook(orderBook: OrderBook) {
     this.orderBook.push(orderBook);
@@ -35,6 +40,7 @@ export class Engine {
 
   addUser(userId: string) {
     this.balances.set(userId, { available: 100, locked: 0 });
+    console.log("balances:" , this.balances.get(userId));
   }
 
   getBalance(userId: string) {
@@ -51,7 +57,9 @@ export class Engine {
     switch (message.type) {
       case CREATE_USER:
         this.createUser(message.data.userId);
-        console.log("User created", this.balances, this.positions);
+        console.log("User created its balances", this.balances.get(message.data.userId));
+        console.log("<--------------------->")
+        console.log("User created its positions", this.positions.get(message.data.userId));
         RedisManager.getInstance().sendToApi(clientId, {
           type: "USER_CREATED",
           payload: {
@@ -66,9 +74,7 @@ export class Engine {
         try {
           console.log(`Message data:`, JSON.stringify(message.data, null, 2));
           // Event To title
-          eventIdToTitle.set(message.data.eventId, message.data.title);
-
-          console.log("Event ID to title mapping:", eventIdToTitle);
+        
 
           // Pass eventId to OrderBook constructor
           const newOrderBook = new OrderBook(message.data.title , message.data.eventId, 0.5, 0.5);
@@ -81,7 +87,7 @@ export class Engine {
           this.createUser(platformUserId);
           this.positions
             .get(platformUserId)!
-            .set(message.data.title, { YES: 100, NO: 100 });
+            .set(message.data.eventId, { YES: 100, NO: 100 });
 
           // Create initial orders at current price (0.5)
           this.createOrder(
@@ -91,6 +97,7 @@ export class Engine {
             "SELL",
             platformUserId,
             "YES"
+          //  message.data.title // Pass title for position management
           );
 
           this.createOrder(
@@ -100,6 +107,7 @@ export class Engine {
             "SELL",
             platformUserId,
             "NO"
+         //   message.data.title // Pass title for position management
           );
 
           RedisManager.getInstance().sendToApi(clientId, {
@@ -118,7 +126,20 @@ export class Engine {
 
       case CREATE_ORDER:
         try {
+
           console.log("Creating order", message.data);
+          console.log("All users in balances:", Array.from(this.balances.keys()));
+          console.log("User exists?", this.balances.has(message.data.userId));
+          console.log("User balance:", this.balances.get(message.data.userId));
+
+          if (!this.balances.has(message.data.userId)) {
+            console.log("Auto-creating user:", message.data.userId);
+            this.createUser(message.data.userId);
+          }
+          console.log("All users in balances:", Array.from(this.balances.keys()));
+          console.log("User exists?", this.balances.has(message.data.userId));
+          console.log("User balance:", this.balances.get(message.data.userId));
+
           const { executedQty, fills, orderId } = this.createOrder(
             message.data.eventId, // This should be eventId
             Number(message.data.price),
@@ -295,7 +316,8 @@ export class Engine {
     quantity: number,
     side: "BUY" | "SELL",
     userId: string,
-    outcome: "YES" | "NO"
+    outcome: "YES" | "NO",
+    // title?: string // Optional title for position management
   ) {
     
     
@@ -314,9 +336,11 @@ export class Engine {
     // if (!title) {
     //   throw new Error(`Title not found for eventId: ${eventId}`);
     // }
+    // Check and lock funds before adding the order
 
-    this.checkAndLockFunds(userId, price, outcome, side, eventId, quantity);
+    this.checkAndLockFunds(userId, price, outcome, side, eventId, quantity );
     console.log(this.orderBook);
+
     const order: Order = {
       price,
       quantity,
@@ -326,6 +350,7 @@ export class Engine {
       outcome,
       orderId: Math.random().toString(36).substring(7),
     };
+    console.log("Order to be added", order);
 
     const { executedQty, fills } = orderBook.addOrder(order);
 
@@ -534,7 +559,8 @@ export class Engine {
     outcome: "YES" | "NO",
     side: "BUY" | "SELL",
     eventId: string,
-    quantity: number
+    quantity: number,
+   // // Optional title for logging or further use
   ) {
     try {
       if (side === "BUY") {
