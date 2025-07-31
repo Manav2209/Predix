@@ -406,6 +406,22 @@ app.delete('/order/:orderId', authMiddleware, async (req, res) => {
     res.status(200).json({ success: true, data: response});
 
 });
+
+app.get("/me", authMiddleware, async (req, res) => {
+    
+        const userId = req.userId;
+        const user = await prismaClient.user.findUnique({
+        where: { id: userId },
+        });
+    
+        if (!user) {
+        res.status(400).json({ error: "User not found", success: false });
+        return;
+        }
+    
+        res.status(200).json({ success: true, data: user });
+});
+
 app.listen(3000, () => {
     console.log("API Server is running on port 3000");
 })

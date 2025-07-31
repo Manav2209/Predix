@@ -1,4 +1,4 @@
-// fetchs all the events
+"use client";
 
 import { TEvent } from "@/lib/types";
 import { useEffect, useState } from "react";
@@ -28,6 +28,7 @@ export default function () {
         const fetchEvents = async () => {
             try {
                 const response = await axios.get<TEvent[]>(`${API_URL}/api/events`);
+                console.log("Fetched events:", response.data);
                 setEvents(response.data);
             } catch (error) {
                 console.error("Error fetching events:", error);
