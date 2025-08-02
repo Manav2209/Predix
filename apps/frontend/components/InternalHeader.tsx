@@ -37,7 +37,7 @@ export const InternalHeader = () => {
           <div className="flex items-center gap-1 cursor-pointer">
             <Eye />
             <span className="text-2xl font-semibold hidden sm:block">
-              Foresee
+              Predix
             </span>
           </div>
         </Link>

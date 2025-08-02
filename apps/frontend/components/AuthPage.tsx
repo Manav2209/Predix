@@ -32,6 +32,7 @@ export const AuthForm = ({ type }: AuthFormProps) => {
         });
 
         const resData = res.data;
+        console.log("resData", resData);
         if (resData.success) {
           localStorage.setItem("token", resData.data);
           toast("Signed in successfully");
@@ -64,12 +65,13 @@ export const AuthForm = ({ type }: AuthFormProps) => {
   };
 
   return (
-    <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8 pt-32">
-      <div className="sm:mx-auto sm:w-full sm:max-w-sm ">
+    <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8 pt-16">
+    <div className="max-w-5xl px-12 py-6 rounded-lg -mt-6 bg-neutral-500 mx-auto">
+      <div className="sm:mx-auto  sm:max-w-sm ">
         <div className="items-center justify-center flex">
           <Eye className="text-3xl" />
         </div>
-        <div className="items-center justify-center flex text-2xl font-bold">Foresee</div>
+        <div className="items-center justify-center flex text-2xl font-bold">Predix</div>
         <h2 className="mt-10 text-center text-2xl font-bold tracking-tight text-gray-900">
           {type === "signin"
             ? "Sign in to your account"
@@ -144,13 +146,14 @@ export const AuthForm = ({ type }: AuthFormProps) => {
           </div>
         </form>
 
-        <p className="mt-10 text-center text-sm text-gray-500">
+        <p className="mt-10 text-center text-sm text-gray-900">
           Not a member?{" "}
           <a href="#" className="font-semibold text-green-800 ">
             Start a 14 day free trial
           </a>
         </p>
       </div>
-    </div>
+      </div>
+      </div>
   );
 };

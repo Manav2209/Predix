@@ -24,7 +24,17 @@ import cors from "cors";
 
 const app = express();
 app.use(express.json());
-app.use(cors())
+
+const corsOptions = {
+    origin: [
+      'http://localhost:3001',  // Alternative port
+      'https://localhost:8080', // Wss dev server
+    ],
+    credentials: true,
+    optionsSuccessStatus: 200
+  };
+  
+  app.use(cors(corsOptions));
 
 
 app.post ('/signup' , async (req , res) => {

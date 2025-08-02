@@ -9,10 +9,10 @@ export const Footer = () => {
             <div className="lg:col-span-2">
               <div className="flex items-center gap-2 mb-4">
                 <Trophy className="h-6 w-6 text-primary" />
-                <span className="text-xl font-bold text-white">Foresee</span>
+                <span className="text-xl font-bold text-white">Predix</span>
               </div>
               <p className="text-slate-400 mb-4 max-w-md">
-                Foresee: Best odds. Fast payouts. Secure betting.
+                Predix: Best odds. Fast payouts. Secure betting.
               </p>
             </div>
           </div>
@@ -20,7 +20,7 @@ export const Footer = () => {
           <div className="border-t border-slate-800 pt-8">
             <div className="grid md:grid-cols-2 gap-4 items-center">
               <div className="text-sm text-slate-500">
-                © {new Date().getFullYear()} Foresee. All rights reserved.
+                © {new Date().getFullYear()} Predix. All rights reserved.
               </div>
               <div className="flex flex-wrap gap-4 md:justify-end text-sm text-slate-500">
                 <Link
@@ -57,7 +57,7 @@ export const Footer = () => {
             </div>
             <div className="mt-4 text-xs text-slate-500">
               <p>
-                Gambling can be addictive. Please play responsibly. Foresee
+                Gambling can be addictive. Please play responsibly. Predix
                 promotes responsible gambling.
               </p>
             </div>

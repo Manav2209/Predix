@@ -96,7 +96,7 @@ export const Hero = ({ isVisible }: { isVisible: boolean }) => {
             <div className="absolute bottom-0 left-0 right-0 p-6">
               <div className="bg-black/40 backdrop-blur-sm rounded-lg p-4 border border-white/10">
                 <div className="text-lg font-bold mb-2 text-center">
-                  Foresee
+                  Predix
                 </div>
                 <div className="items-center flex justify-center">
                   <Eye className="h-7  w-7 text-white" />

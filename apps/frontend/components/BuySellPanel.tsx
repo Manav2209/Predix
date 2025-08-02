@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Minus, Plus } from "lucide-react";
 import { Button } from "./ui/button";
 import { TEvent } from "@/lib/types";
@@ -17,10 +17,16 @@ export const BuySellPanel = ({ event }: BuySellPanelProps) => {
   const [yesQuantity, setYesQuantity] = useState(1);
   const [noPrice, setNoPrice] = useState<number>(Number(event.noPrice));
   const [noQuantity, setNoQuantity] = useState(1);
-  const isLoggedIn = localStorage.getItem("token") !== "";
-  console.log("isLoggedIn", isLoggedIn);
   const price = selectedOption === "yes" ? yesPrice : noPrice;
   const quantity = selectedOption === "yes" ? yesQuantity : noQuantity;
+  const [token, setToken] = useState<string | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const tokenFromStorage = localStorage.getItem("token");
+    setToken(tokenFromStorage);
+    setIsLoggedIn(!!tokenFromStorage);
+  }, []);
 
   const handlePriceChange = (delta: number) => {
     if (selectedOption === "yes") {

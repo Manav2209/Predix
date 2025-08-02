@@ -27,9 +27,9 @@ export default function () {
     useEffect(() => {
         const fetchEvents = async () => {
             try {
-                const response = await axios.get<TEvent[]>(`${API_URL}/api/events`);
+                const response = await axios.get(`${API_URL}/events`);
                 console.log("Fetched events:", response.data);
-                setEvents(response.data);
+                setEvents(response.data.data);
             } catch (error) {
                 console.error("Error fetching events:", error);
             }
@@ -66,9 +66,9 @@ export default function () {
                 <div className="flex-1">
                 <h1 className="text-2xl font-bold mb-6">All events</h1>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {events.map((event) => (
+                {Array.isArray(events) && events.map((event) => (
                     <EventCard key={event.id} event={event} />
-                    ))}
+                ))}
                 </div>
                 </div>
             </div>
