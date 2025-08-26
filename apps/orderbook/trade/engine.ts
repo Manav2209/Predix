@@ -212,6 +212,7 @@ export class Engine {
           }
 
           const depth = orderBook.getDepth();
+          console.log("Depth", depth);
           RedisManager.getInstance().sendToApi(clientId, {
             type: "DEPTH",
             payload: {

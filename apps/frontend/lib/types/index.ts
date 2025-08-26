@@ -20,7 +20,7 @@ export type TTrade = {
     timestamp: string;
 }
 
-export interface Depth {
+export interface TDepth {
         YES: {
         asks: { price: number; quantity: number }[];
         bids: { price: number; quantity: number }[];

@@ -4,6 +4,7 @@ import { TEvent } from "@/lib/types";
 import { useEffect, useState } from "react";
 import { SignalingManager } from "@/lib/SignalingManager";
 import { AskTable } from "./AskTable";
+import { BidTable } from "./BidsTable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Book, ChartCandlestick } from "lucide-react";
 import { Trade } from "../Trade";
@@ -229,13 +230,30 @@ export const Depth = ({ event }: DepthProps) => {
         </TabsList>
         <TabsContent value="orderbook" className="mt-6">
           <div className="flex flex-1 gap-5 rounded-2xl">
+            {/* YES Side */}
             <div className="flex flex-col gap-2 flex-1">
               <TableHeader outcome={"YES"} />
-              <AskTable asks={Yesasks} outcome="YES" />
+              <div className="mb-4">
+                <div className="text-xs font-medium text-gray-600 mb-2">ASKS</div>
+                <AskTable asks={Yesasks} outcome="YES" />
+              </div>
+              <div>
+                <div className="text-xs font-medium text-gray-600 mb-2">BIDS</div>
+                <BidTable bids={Yesbids} outcome="YES" />
+              </div>
             </div>
-            <div className="flex flex-col gap-2 flex-1 ">
+            
+            {/* NO Side */}
+            <div className="flex flex-col gap-2 flex-1">
               <TableHeader outcome={"NO"} />
-              <AskTable asks={Noasks} outcome="NO" />
+              <div className="mb-4">
+                <div className="text-xs font-medium text-gray-600 mb-2">ASKS</div>
+                <AskTable asks={Noasks} outcome="NO" />
+              </div>
+              <div>
+                <div className="text-xs font-medium text-gray-600 mb-2">BIDS</div>
+                <BidTable bids={Nobids} outcome="NO" />
+              </div>
             </div>
           </div>
         </TabsContent>
@@ -250,7 +268,7 @@ export const Depth = ({ event }: DepthProps) => {
 
 function TableHeader({ outcome }: { outcome: "YES" | "NO" }) {
   return (
-    <div className="flex justify-between ">
+    <div className="flex justify-between mb-4">
       <div className="text-black text-sm font-semibold">PRICE</div>
       <div className="text-black text-sm font-light">
         QTY AT <span> </span>

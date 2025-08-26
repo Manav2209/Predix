@@ -4,10 +4,10 @@ interface AsksTableProps {
   }
   
   export const AskTable = ({ asks, outcome }: AsksTableProps) => {
-    console.log("asks", asks);
+    
     let currentTotal = 0;
     const relevantAsks = asks.slice(0, 5);
-    console.log("relevant asks", relevantAsks);
+    
     relevantAsks.reverse();
   
     let asksWithTotal: [number, number, number][] = [];

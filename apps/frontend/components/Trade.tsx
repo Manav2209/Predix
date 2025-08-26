@@ -20,9 +20,22 @@ export const Trade = ({ event }: TradeProps) => {
   const [trades, setTrades] = React.useState<TTrade[]>([]);
 
   useEffect(() => {
+
+    SignalingManager.getInstance().registerCallback(
+      "trade",
+      (data) => console.log("Trade update:", data),
+      "TRADES@Will Bitcoin reach $100,000 by end of 2028"
+    );
+    SignalingManager.getInstance().sendMessage({
+      method: "SUBSCRIBE",
+      params: ["trades@Will Bitcoin reach $100,000 by end of 2028"],
+    });
+
+
     SignalingManager.getInstance().registerCallback(
       "trade",
       (data: any) => {
+        console.log("Received trade data:", data);
         const newTrade = {
           price: data.price,
           quantity: data.quantity,

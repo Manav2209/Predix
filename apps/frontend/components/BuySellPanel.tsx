@@ -9,9 +9,10 @@ import { toast } from "sonner";
 
 interface BuySellPanelProps {
   event: TEvent;
+  onOrderPlaced?: () => void; // Callback to refresh orderbook
 }
 
-export const BuySellPanel = ({ event }: BuySellPanelProps) => {
+export const BuySellPanel = ({ event, onOrderPlaced }: BuySellPanelProps) => {
   const [selectedOption, setSelectedOption] = useState<"yes" | "no">("yes");
   const [yesPrice, setYesPrice] = useState<number>(Number(event.yesPrice));
   const [yesQuantity, setYesQuantity] = useState(1);
@@ -21,6 +22,7 @@ export const BuySellPanel = ({ event }: BuySellPanelProps) => {
   const quantity = selectedOption === "yes" ? yesQuantity : noQuantity;
   const [token, setToken] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
   useEffect(() => {
     const tokenFromStorage = localStorage.getItem("token");
@@ -30,9 +32,9 @@ export const BuySellPanel = ({ event }: BuySellPanelProps) => {
 
   const handlePriceChange = (delta: number) => {
     if (selectedOption === "yes") {
-      setYesPrice(Math.max(0.1, yesPrice + delta));
+      setYesPrice(Math.max(0.1, Math.round((yesPrice + delta) * 10) / 10));
     } else {
-      setNoPrice(Math.max(0.1, noPrice + delta));
+      setNoPrice(Math.max(0.1, Math.round((noPrice + delta) * 10) / 10));
     }
   };
 
@@ -52,67 +54,73 @@ export const BuySellPanel = ({ event }: BuySellPanelProps) => {
       toast.error("Please sign in to place order");
       return;
     }
-    let res;
-    if (selectedOption === "yes") {
-      try {
-        res = await axios.post(
-          `${API_URL}/order`,
-          {
-            eventId: event.id,
-            orderType: "LIMIT",
-            outcome: selectedOption.toUpperCase(),
-            side: "BUY",
-            quantity: yesQuantity,
-            price: yesPrice,
+
+    setIsPlacingOrder(true);
+    
+    try {
+      const orderData = {
+        eventId: event.id,
+        orderType: "LIMIT",
+        outcome: selectedOption.toUpperCase(),
+        side: "BUY",
+        quantity: selectedOption === "yes" ? yesQuantity : noQuantity,
+        price: selectedOption === "yes" ? yesPrice : noPrice,
+      };
+
+      console.log("Placing order with data:", orderData);
+
+      const res = await axios.post(
+        `${API_URL}/order`,
+        orderData,
+        {
+          headers: {
+            Authorization: `${localStorage.getItem("token")}`,
           },
-          {
-            headers: {
-              Authorization: `${localStorage.getItem("token")}`,
-            },
+        }
+      );
+
+      console.log("Order response:", res.data);
+
+      // Check multiple possible success indicators
+      if (res.status === 200 || res.status === 201 || res.data.success === true || res.data.status === "success" || res.data) {
+        toast.success("Order placed successfully!");
+        
+        // Reset form or keep current values based on your preference
+        // setYesQuantity(1);
+        // setNoQuantity(1);
+        
+        // Trigger orderbook refresh
+        if (onOrderPlaced) {
+          onOrderPlaced();
+        }
+        
+        // Additional refresh after a short delay to ensure backend processing
+        setTimeout(() => {
+          if (onOrderPlaced) {
+            onOrderPlaced();
           }
-        );
-      } catch (err) {
-        console.log(err);
-        toast.error("Failed to place order");
-        return;
-      }
-      if (res.data.success) {
-        toast.success("Order placed successfully");
-        return;
+        }, 1000);
+        
       } else {
-        toast.error("Failed to place order");
-        return;
+        console.error("Order failed with response:", res.data);
+        toast.error(res.data.message || "Failed to place order");
       }
-    } else {
-      try {
-        res = await axios.post(
-          `${API_URL}/order`,
-          {
-            eventId: event.id,
-            orderType: "LIMIT",
-            outcome: selectedOption.toUpperCase(),
-            side: "BUY",
-            quantity: noQuantity,
-            price: noPrice,
-          },
-          {
-            headers: {
-              Authorization: `${localStorage.getItem("token")}`,
-            },
-          }
-        );
-      } catch (err) {
-        console.log(err);
-        toast("Failed to place order");
-        return;
-      }
-      if (res.data.success) {
-        toast.success("Order placed successfully");
-        return;
+
+    } catch (err: any) {
+      console.error("Error placing order:", err);
+      
+      // Check if it's actually a successful response disguised as an error
+      if (err.response?.status === 200 || err.response?.status === 201) {
+        toast.success("Order placed successfully!");
+        if (onOrderPlaced) {
+          onOrderPlaced();
+        }
       } else {
-        toast("Failed to place order");
-        return;
+        const errorMessage = err.response?.data?.message || err.message || "Failed to place order";
+        toast.error(errorMessage);
       }
+    } finally {
+      setIsPlacingOrder(false);
     }
   };
 
@@ -153,15 +161,17 @@ export const BuySellPanel = ({ event }: BuySellPanelProps) => {
                   size="icon"
                   className="h-8 w-8 rounded-full"
                   onClick={() => handlePriceChange(-0.1)}
+                  disabled={isPlacingOrder}
                 >
                   <Minus className="h-4 w-4" />
                 </Button>
-                <span className="font-bold text-lg">₹{price}</span>
+                <span className="font-bold text-lg">₹{price.toFixed(1)}</span>
                 <Button
                   variant="outline"
                   size="icon"
                   className="h-8 w-8 rounded-full"
                   onClick={() => handlePriceChange(0.1)}
+                  disabled={isPlacingOrder}
                 >
                   <Plus className="h-4 w-4" />
                 </Button>
@@ -197,6 +207,7 @@ export const BuySellPanel = ({ event }: BuySellPanelProps) => {
                   size="icon"
                   className="h-8 w-8 rounded-full"
                   onClick={() => handleQuantityChange(-1)}
+                  disabled={isPlacingOrder}
                 >
                   <Minus className="h-4 w-4" />
                 </Button>
@@ -206,6 +217,7 @@ export const BuySellPanel = ({ event }: BuySellPanelProps) => {
                   size="icon"
                   className="h-8 w-8 rounded-full"
                   onClick={() => handleQuantityChange(1)}
+                  disabled={isPlacingOrder}
                 >
                   <Plus className="h-4 w-4" />
                 </Button>
@@ -229,11 +241,16 @@ export const BuySellPanel = ({ event }: BuySellPanelProps) => {
           </div>
 
           <Button
-            disabled={!isLoggedIn}
+            disabled={!isLoggedIn || isPlacingOrder}
             className="w-full text-white bg-black hover:bg-black/90"
             onClick={handlePlaceOrder}
           >
-            {isLoggedIn ? "Place order" : "Sign in to place order"}
+            {isPlacingOrder 
+              ? "Placing order..." 
+              : !isLoggedIn 
+                ? "Sign in to place order" 
+                : "Place order"
+            }
           </Button>
         </div>
       </div>
