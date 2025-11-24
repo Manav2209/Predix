@@ -51,6 +51,8 @@ export class OrderBook {
     addOrder(order: Order): { executedQty: number; fills: Fill[] } {
       if (order.side === "BUY") {
         const { executedQty, fills } = this.matchBuyOrder(order);
+        console.log("Executed Qty:", executedQty);
+        console.log("Fills:", fills);
   
         if (executedQty == order.quantity) {
           return { executedQty, fills };
@@ -86,9 +88,7 @@ export class OrderBook {
           }
           
           for (let i = 0; i < this.YES_ASKS.length; i++) {
-              if (
-                  this.YES_ASKS[i]!.price <= order.price && executedQty < order.quantity 
-              ) {
+              if (this.YES_ASKS[i]!.price <= order.price && executedQty < order.quantity ) {
                   if (this.YES_ASKS[i]?.userId === order.userId) {
                       continue; // Skip self-trades
                   }

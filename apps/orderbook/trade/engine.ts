@@ -337,6 +337,8 @@ export class Engine {
     // if (!title) {
     //   throw new Error(`Title not found for eventId: ${eventId}`);
     // }
+
+    
     // Check and lock funds before adding the order
 
     this.checkAndLockFunds(userId, price, outcome, side, eventId, quantity );

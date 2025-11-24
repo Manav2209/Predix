@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { toast } from "sonner";
-import {API_URL} from "@/lib/config"
+import { API_URL } from "@/lib/config";
 
 interface AuthFormProps {
   type: string;
@@ -15,7 +15,6 @@ export const AuthForm = ({ type }: AuthFormProps) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -25,23 +24,19 @@ export const AuthForm = ({ type }: AuthFormProps) => {
 
     try {
       if (type === "signin") {
-        // Sign in logic
-        const res = await axios.post(`${API_URL}/signin`, {
-          email,
-          password,
-        });
-
+        const res = await axios.post(`${API_URL}/signin`, { email, password });
         const resData = res.data;
-        console.log("resData", resData);
+        console.log(resData)
         if (resData.success) {
           localStorage.setItem("token", resData.data);
-          toast("Signed in successfully");
-          router.push("/");
+          console.log("token", localStorage.getItem("token"))
+
+          toast.success("Signed in successfully");
+          router.push("/event");
           return;
         }
-        toast("Failed to sign in");
+        toast.error("Failed to sign in");
       } else if (type === "signup") {
-        // Sign up logic
         const res = await axios.post(`${API_URL}/signup`, {
           username,
           email,
@@ -49,111 +44,130 @@ export const AuthForm = ({ type }: AuthFormProps) => {
         });
 
         if (res.data.success) {
-          toast("Signed up successfully. You can now sign in");
-          router.push("/auth/signin");
+          toast.success("Signed up successfully. You can now sign in");
+          router.push("/event");
           return;
         }
-        toast("Failed to sign up");
+        toast.error("Failed to sign up");
       }
     } catch (err) {
-      console.log(err);
-      toast(`Failed to ${type === "signin" ? "sign in" : "sign up"}`);
-      setError("Something went wrong");
+      console.error(err);
+      toast.error(`Failed to ${type === "signin" ? "sign in" : "sign up"}`);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8 pt-16">
-    <div className="max-w-5xl px-12 py-6 rounded-lg -mt-6 bg-neutral-500 mx-auto">
-      <div className="sm:mx-auto  sm:max-w-sm ">
-        <div className="items-center justify-center flex">
-          <Eye className="text-3xl" />
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#0f172a] px-6 py-12">
+      <div className="w-full max-w-md rounded-2xl bg-white/10 backdrop-blur-md shadow-2xl border border-white/10 p-8">
+        <div className="flex flex-col items-center mb-8">
+          <div className="flex items-center justify-center bg-green-500/20 rounded-full p-3">
+            <Eye className="w-6 h-6 text-green-400" />
+          </div>
+          <h1 className="mt-3 text-3xl font-bold text-white">Predix</h1>
+          <p className="mt-1 text-gray-400 text-sm">
+            {type === "signin"
+              ? "Welcome back! Please sign in to continue."
+              : "Create your account to get started."}
+          </p>
         </div>
-        <div className="items-center justify-center flex text-2xl font-bold">Predix</div>
-        <h2 className="mt-10 text-center text-2xl font-bold tracking-tight text-gray-900">
-          {type === "signin"
-            ? "Sign in to your account"
-            : "Sign up to your account"}
-        </h2>
-      </div>
 
-      <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
-        <form className="space-y-6" onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="space-y-5">
           {type === "signup" && (
             <div>
-              <label className="block text-sm font-medium text-gray-900">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Username
               </label>
-              <div className="mt-2">
-                <input
-                  onChange={(e) => setUsername(e.target.value)}
-                  type="text"
-                  name="username"
-                  id="username"
-                  className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm"
-                />
-              </div>
+              <input
+                onChange={(e) => setUsername(e.target.value)}
+                type="text"
+                name="username"
+                id="username"
+                placeholder="Enter your username"
+                className="w-full rounded-lg border border-gray-700 bg-transparent px-3 py-2 text-sm text-white placeholder-gray-400 focus:border-green-500 focus:ring-1 focus:ring-green-500"
+              />
             </div>
           )}
+
           <div>
-            <label className="block text-sm font-medium text-gray-900">
+            <label className="block text-sm font-medium text-gray-300 mb-1">
               Email address
             </label>
-            <div className="mt-2">
-              <input
-                onChange={(e) => setEmail(e.target.value)}
-                type="email"
-                name="email"
-                id="email"
-                className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm"
-              />
-            </div>
+            <input
+              onChange={(e) => setEmail(e.target.value)}
+              type="email"
+              name="email"
+              id="email"
+              placeholder="you@example.com"
+              className="w-full rounded-lg border border-gray-700 bg-transparent px-3 py-2 text-sm text-white placeholder-gray-400 focus:border-green-500 focus:ring-1 focus:ring-green-500"
+            />
           </div>
 
           <div>
-            <div className="flex items-center justify-between">
-              <label className="block text-sm font-medium text-gray-900">
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-sm font-medium text-gray-300">
                 Password
               </label>
-              <div className="text-sm">
-                <a href="#" className="font-semibold text-green-800  ">
+              {type === "signin" && (
+                <a
+                  href="#"
+                  className="text-sm text-green-400 hover:text-green-300 transition"
+                >
                   Forgot password?
                 </a>
-              </div>
+              )}
             </div>
-            <div className="mt-2">
-              <input
-                onChange={(e) => setPassword(e.target.value)}
-                type="password"
-                name="password"
-                id="password"
-                required
-                className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm"
-              />
-            </div>
+            <input
+              onChange={(e) => setPassword(e.target.value)}
+              type="password"
+              name="password"
+              id="password"
+              placeholder="••••••••"
+              required
+              className="w-full rounded-lg border border-gray-700 bg-transparent px-3 py-2 text-sm text-white placeholder-gray-400 focus:border-green-500 focus:ring-1 focus:ring-green-500"
+            />
           </div>
 
-          <div>
-            <Button
-              type="submit"
-              disabled={loading}
-              className="flex w-full justify-center rounded-md bg-black px-3 py-1.5 text-sm font-semibold text-white shadow-xs cursor-pointer"
-            >
-              {type === "signin" ? "Sign in" : "Sign up"}
-            </Button>
-          </div>
+          <Button
+            type="submit"
+            disabled={loading}
+            className="w-full mt-4 rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold py-2 transition disabled:opacity-60"
+          >
+            {loading
+              ? type === "signin"
+                ? "Signing in..."
+                : "Signing up..."
+              : type === "signin"
+              ? "Sign In"
+              : "Sign Up"}
+          </Button>
         </form>
 
-        <p className="mt-10 text-center text-sm text-gray-900">
-          Not a member?{" "}
-          <a href="#" className="font-semibold text-green-800 ">
-            Start a 14 day free trial
-          </a>
+        <p className="mt-8 text-center text-sm text-gray-400">
+          {type === "signin" ? (
+            <>
+              Don’t have an account?{" "}
+              <a
+                href="/auth/signup"
+                className="text-green-400 font-semibold hover:text-green-300 transition"
+              >
+                Sign up
+              </a>
+            </>
+          ) : (
+            <>
+              Already have an account?{" "}
+              <a
+                href="/auth/signin"
+                className="text-green-400 font-semibold hover:text-green-300 transition"
+              >
+                Sign in
+              </a>
+            </>
+          )}
         </p>
       </div>
-      </div>
-      </div>
-  );
+    </div>
+  ); 
 };

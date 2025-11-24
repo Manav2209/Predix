@@ -20,6 +20,7 @@ export class SubscriptionManager {
     }
 
     public subscribe(userId: string, subscription: string) {
+        console.log("user susbscribed" , userId)
         if (this.subscriptions.get(userId)?.includes(subscription)) {
             return
         }
@@ -38,6 +39,7 @@ export class SubscriptionManager {
     }
 
     public unsubscribe(userId: string, subscription: string) {
+        console.log("Unsubscribed" , userId)
         const subscriptions = this.subscriptions.get(userId);
         if (subscriptions) {
             this.subscriptions.set(userId, subscriptions.filter(s => s !== subscription));

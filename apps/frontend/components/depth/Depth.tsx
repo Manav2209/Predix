@@ -184,12 +184,12 @@ export const Depth = ({ event }: DepthProps) => {
           return asksAfterUpdate;
         });
       },
-      `DEPTH@${event.title}`
+      `DEPTH@${event.id}`
     );
 
     SignalingManager.getInstance().sendMessage({
       method: "SUBSCRIBE",
-      params: [`depth@${event.title}`],
+      params: [`depth@${event.id}`],
     });
 
     getDepth(event.id).then((d) => {
@@ -202,11 +202,11 @@ export const Depth = ({ event }: DepthProps) => {
     return () => {
       SignalingManager.getInstance().sendMessage({
         method: "UNSUBSCRIBE",
-        params: [`depth@${event.title}`],
+        params: [`depth@${event.id}`],
       });
       SignalingManager.getInstance().deRegisterCallback(
         "depth",
-        `DEPTH-${event.title}`
+        `DEPTH-${event.id}`
       );
     };
   }, []);

@@ -1,5 +1,6 @@
 import { SUBSCRIBE, UNSUBSCRIBE, type IncomingMessage } from "./types/in";
 import { SubscriptionManager } from "./SubscriptionManager";
+import  type {OutgoingMessage} from"./types/out";
 
 
 export class User {
@@ -26,7 +27,8 @@ export class User {
     );
   }
 
-  emit(message: any) {
+  emit(message: OutgoingMessage) {
+    console.log("message", message);
     this.ws.send(JSON.stringify(message));
   }
   private addListener() {

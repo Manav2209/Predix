@@ -27,7 +27,7 @@ app.use(express.json());
 
 const corsOptions = {
     origin: [
-      'http://localhost:3001',  // Alternative port
+      'http://localhost:3000',  // Alternative port
       'https://localhost:8080', // Wss dev server
     ],
     credentials: true,
@@ -96,7 +96,6 @@ app.post('/signin' , async (req , res) => {
         res.status(400).json({ error: data.error, success: false });
         return;
     }
-
     const { email, password } = data.data;
 
     const user = await prismaClient.user.findUnique({
@@ -106,12 +105,14 @@ app.post('/signin' , async (req , res) => {
     });
     
     if(!user) {
-        res.status(400).json({ error: "User not found", success: false });
+        res.status(400).json({ error: "User not found please register first", success: false });
         return;
     }
     // check the password with the hashed password in the db
-    
-    
+    if(user.password !== password){
+        res.status(400).json({ error :"Passowrd is Wrong" , success: false})
+
+    }
     const token = jwt.sign({ id: user.id }, JWT_SECRET);
 
     res.status(200).json({ success: true, data: token });
@@ -417,22 +418,32 @@ app.delete('/order/:orderId', authMiddleware, async (req, res) => {
 
 });
 
-app.get("/me", authMiddleware, async (req, res) => {
+app.get("/me", authMiddleware,  async (req, res) => {
     
+    try {
         const userId = req.userId;
-        const user = await prismaClient.user.findUnique({
-        where: { id: userId },
-        });
     
-        if (!user) {
-        res.status(400).json({ error: "User not found", success: false });
-        return;
+        if (!userId) {
+                res.status(401).json({ error: "Unauthorized: missing user ID", success: false });
+                return;
+            }
+        
+            const user = await prismaClient.user.findUnique({
+            where: { id: userId },
+            });
+        
+            if (!user) {
+            res.status(400).json({ error: "User not found, check the token", success: false });
+            }
+        
+            res.status(200).json({ success: true, data: user });
+        } catch (error) {
+            console.error("Error in /me route:", error);
+            res.status(500).json({ error: "Internal Server Error", success: false });
         }
-    
-        res.status(200).json({ success: true, data: user });
 });
 
-app.listen(3000, () => {
-    console.log("API Server is running on port 3000");
+app.listen(4000, () => {
+    console.log("API Server is running on port 4000");
 })
 

@@ -20,22 +20,9 @@ export const Trade = ({ event }: TradeProps) => {
   const [trades, setTrades] = React.useState<TTrade[]>([]);
 
   useEffect(() => {
-
-    SignalingManager.getInstance().registerCallback(
-      "trade",
-      (data) => console.log("Trade update:", data),
-      "TRADES@Will Bitcoin reach $100,000 by end of 2028"
-    );
-    SignalingManager.getInstance().sendMessage({
-      method: "SUBSCRIBE",
-      params: ["trades@Will Bitcoin reach $100,000 by end of 2028"],
-    });
-
-
     SignalingManager.getInstance().registerCallback(
       "trade",
       (data: any) => {
-        console.log("Received trade data:", data);
         const newTrade = {
           price: data.price,
           quantity: data.quantity,
@@ -48,25 +35,25 @@ export const Trade = ({ event }: TradeProps) => {
         }
         setTrades([...(trades || []), newTrade]);
       },
-      `TRADES@${event.title}`
+      `TRADES@${event.id}`
     );
 
     SignalingManager.getInstance().sendMessage({
       method: "SUBSCRIBE",
-      params: [`trades@${event.title}`],
+      params: [`trades@${event.id}`],
     });
 
     return () => {
       SignalingManager.getInstance().sendMessage({
         method: "UNSUBSCRIBE",
-        params: [`trades@${event.title}`],
+        params: [`trades@${event.id}`],
       });
       SignalingManager.getInstance().deRegisterCallback(
         "trade",
-        `TRADES-${event.title}`
+        `TRADES@${event.id}`
       );
     };
-  });
+  }, [event.id, trades]);
 
   return (
     <div>
