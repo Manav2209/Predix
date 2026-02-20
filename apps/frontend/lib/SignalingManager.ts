@@ -10,6 +10,7 @@ export class SignalingManager {
   private static instance: SignalingManager;
   private bufferedMessages: any[] = [];
   private callbacks: Record<string, CallbackEntry[]> = {};
+  private tradeHistory: Record<string, any[]> = {};
   private initialized: boolean = false;
   private reconnectAttempts: number = 0;
   private maxReconnectAttempts: number = 5;
@@ -91,7 +92,30 @@ export class SignalingManager {
                 noasks: updatedNoAsks,
               });
             } else if (type === "trade") {
-              callback(message.data || message);
+              const tradeData = message.data || message;
+
+              const eventId =
+                tradeData.eventId ??
+                tradeData.event_id ??
+                tradeData.event;
+
+              // store history
+              if(eventId){
+
+                this.tradeHistory[eventId] =
+                  this.tradeHistory[eventId] || [];
+
+                this.tradeHistory[eventId].unshift(tradeData);
+
+                // limit history
+                this.tradeHistory[eventId] =
+                  this.tradeHistory[eventId].slice(0,100);
+
+              }
+
+              this.callbacks[type]?.forEach(({callback})=>{
+                callback(tradeData);
+                });
             }
           });
         }
@@ -114,6 +138,10 @@ export class SignalingManager {
     this.callbacks[type] = this.callbacks[type] || [];
     this.callbacks[type].push({ callback, id });
     console.log(`Registered callback for type: ${type}, id: ${id}`);
+  }
+
+  public getTradeHistory(eventId:string){
+    return this.tradeHistory[eventId] || [];
   }
 
   public deRegisterCallback(type: string, id: string): void {

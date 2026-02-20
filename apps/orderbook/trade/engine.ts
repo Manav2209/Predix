@@ -74,7 +74,6 @@ export class Engine {
         try {
           console.log(`Message data:`, JSON.stringify(message.data, null, 2));
           // Event To title
-        
 
           // Pass eventId to OrderBook constructor
           const newOrderBook = new OrderBook(message.data.title , message.data.eventId, 0.5, 0.5);
@@ -113,7 +112,6 @@ export class Engine {
           RedisManager.getInstance().sendToApi(clientId, {
             type: "EVENT_CREATED",
             payload: {
-              
               eventId: message.data.eventId,
               expiresAt: message.data.expiresAt,
             },
@@ -308,6 +306,7 @@ export class Engine {
           });
         }
         break;
+        
     }
   }
 

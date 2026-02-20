@@ -82,7 +82,7 @@ export const BuySellPanel = ({ event, onOrderPlaced }: BuySellPanelProps) => {
       console.log("Order response:", res.data);
 
       // Check multiple possible success indicators
-      if (res.status === 200 || res.status === 201 || res.data.success === true || res.data.status === "success" || res.data) {
+      if (res.status === 200 || res.status === 201 || res.data.success === true || res.data.status === "success" ) {
         toast.success("Order placed successfully!");
         
         // Reset form or keep current values based on your preference

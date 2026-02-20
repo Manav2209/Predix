@@ -13,6 +13,8 @@ export default async function EventPage({
   try {
     const response = await axios.get(`${API_URL}/event/${eventId}`);
     const event = response.data.data;
+    
+
     return (
       <div className="bg-[#f5f5f5] h-screen">
         <InternalHeader />

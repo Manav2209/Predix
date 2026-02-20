@@ -45,7 +45,7 @@ export const AuthForm = ({ type }: AuthFormProps) => {
 
         if (res.data.success) {
           toast.success("Signed up successfully. You can now sign in");
-          router.push("/event");
+          router.push("/signin");
           return;
         }
         toast.error("Failed to sign up");

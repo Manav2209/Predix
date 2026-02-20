@@ -19,41 +19,34 @@ interface TradeProps {
 export const Trade = ({ event }: TradeProps) => {
   const [trades, setTrades] = React.useState<TTrade[]>([]);
 
-  useEffect(() => {
-    SignalingManager.getInstance().registerCallback(
+  useEffect(()=>{
+
+    const manager = SignalingManager.getInstance();
+    const history = manager.getTradeHistory(event.id);
+
+      if(history.length){
+        setTrades(history);
+      }
+    manager.registerCallback(
       "trade",
-      (data: any) => {
-        const newTrade = {
-          price: data.price,
-          quantity: data.quantity,
-          outcome: data.outcome,
-          timestamp: data.timestamp,
+      (data:any)=>{
+        const newTrade={
+          price:data.price,
+          quantity:data.quantity,
+          outcome:data.outcome,
+          timestamp:data.timestamp
         };
-        if (trades.length === 0) {
-          setTrades([newTrade]);
-          return;
-        }
-        setTrades([...(trades || []), newTrade]);
+        setTrades(prev=>[newTrade,...prev]); // newest first
       },
       `TRADES@${event.id}`
     );
-
-    SignalingManager.getInstance().sendMessage({
-      method: "SUBSCRIBE",
-      params: [`trades@${event.id}`],
-    });
-
-    return () => {
-      SignalingManager.getInstance().sendMessage({
-        method: "UNSUBSCRIBE",
-        params: [`trades@${event.id}`],
-      });
-      SignalingManager.getInstance().deRegisterCallback(
+    return ()=>{
+      manager.deRegisterCallback(
         "trade",
         `TRADES@${event.id}`
       );
-    };
-  }, [event.id, trades]);
+    }},
+    [event.id]);
 
   return (
     <div>

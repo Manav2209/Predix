@@ -7,7 +7,6 @@ export interface Order{
     userId : string;
     outcome: "YES" | "NO";
     orderId: string;
-
 }
 
 export interface Fill {
@@ -19,7 +18,6 @@ export interface Fill {
     orderId: string;
     otherUserId: string;
     tradeId: number;
-
 }
 export const eventIdToTitle = new Map<string, string>();
 export class OrderBook {
@@ -83,16 +81,19 @@ export class OrderBook {
       let executedQty = 0;
   
       if (order.outcome === "YES") {
+        // check it ask lenght i sthere or not
           if (this.YES_ASKS.length === 0) {
               return { executedQty, fills };
           }
           
+          // traverse through orderbook 
           for (let i = 0; i < this.YES_ASKS.length; i++) {
+            // check the condition ask price is less than order price and that if we have executed quantity is less than order qunatity so that it can be filled 
               if (this.YES_ASKS[i]!.price <= order.price && executedQty < order.quantity ) {
                   if (this.YES_ASKS[i]?.userId === order.userId) {
                       continue; // Skip self-trades
                   }
-                  
+                  // get the filled qty and choose the min which would be between the difference of [(qunatity-filled) && (order.qunatity - executedqty)
                   const filledQty = Math.min(
                       this.YES_ASKS[i]!.quantity - this.YES_ASKS[i]!.filled, // Use remaining quantity
                       order.quantity - executedQty
@@ -159,7 +160,8 @@ export class OrderBook {
                   });
               }
           }
-  
+          
+          // Cleanuo logic of orderbook which is that the order which have been is to remove it and partial filled to decrease quantity and make the filled -> 0 
           // Remove completely filled orders AND update remaining quantities
           for (let i = this.NO_ASKS.length - 1; i >= 0; i--) {
               if (this.NO_ASKS[i]!.quantity === this.NO_ASKS[i]!.filled) {

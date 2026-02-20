@@ -263,7 +263,7 @@ app.post('/order', authMiddleware, async (req, res) => {
         res.status(400).json({ error: "Orderbook not responding", success: false });
         return;
     }
-
+    
 
     // Use req.user to access the authenticated user
     res.status(200).json({ data: response1 });

@@ -1,9 +1,13 @@
+"use client"
+import { useEventWS } from "@/hooks/useEventWS";
 import { Depth } from "./depth/Depth";
 import { EventDescription } from "./EventDescription";
 import { EventOverview } from "./EventOverview";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const InfoPanel = ({ event }: { event: any }) => {
+  useEventWS(event.id);
+
   return (
     <div className="flex  flex-col w-full gap-y-10 justify-start">
       <div>

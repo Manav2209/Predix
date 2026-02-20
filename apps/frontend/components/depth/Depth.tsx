@@ -26,190 +26,123 @@ export const Depth = ({ event }: DepthProps) => {
   const [Noasks, setNoAsks] = useState<{ price: number; quantity: number }[]>(
     []
   );
-
   useEffect(() => {
-    SignalingManager.getInstance().registerCallback(
-      "depth",
-      (data: any) => {
-        console.log("New Depth data");
-        console.log("Data:", data);
 
-        setYesBids((originalBids) => {
-          const bidsAfterUpdate = [...(originalBids || [])];
+    const manager = SignalingManager.getInstance();
+    manager.registerCallback("depth",(data:any)=>{
 
-          // Handle updates to existing bids
-          for (let i = 0; i < bidsAfterUpdate.length; i++) {
-            for (let j = 0; j < data.yesbids.length; j++) {
-              if (bidsAfterUpdate[i].price === data.yesbids[j].price) {
-                // Update quantity
-                bidsAfterUpdate[i].quantity = data.yesbids[j].quantity;
-                // Remove if quantity is 0
-                if (bidsAfterUpdate[i].quantity === 0) {
-                  bidsAfterUpdate.splice(i, 1);
-                  i--; // Adjust index after removing item
-                }
-                break;
+        console.log("Depth update");
+        setYesBids(prev => {
+          const updated=[...prev];
+          data.yesbids.forEach((bid:any)=>{
+            const index=updated.findIndex(
+              b=>b.price===bid.price
+            )
+            if(bid.quantity===0){
+              if(index!==-1){
+                updated.splice(index,1);
+              }
+            }else{
+
+              if(index!==-1){
+                updated[index].quantity=bid.quantity;
+              }else{
+                updated.push(bid);
               }
             }
-          }
+          });
 
-          // Add new bids
-          for (let j = 0; j < data.yesbids.length; j++) {
-            const bidPrice = data.yesbids[j].price;
-            const bidQuantity = data.yesbids[j].quantity;
+          updated.sort((a,b)=>b.price-a.price);
+          return updated;
 
-            if (
-              bidQuantity !== 0 &&
-              !bidsAfterUpdate.some((bid) => bid.price === bidPrice)
-            ) {
-              bidsAfterUpdate.push({ price: bidPrice, quantity: bidQuantity });
-            }
-          }
-
-          // Sort bids (highest to lowest price)
-          bidsAfterUpdate.sort((a, b) => b.price - a.price);
-
-          return bidsAfterUpdate;
         });
-        setNoBids((originalBids) => {
-          const bidsAfterUpdate = [...(originalBids || [])];
+        setNoBids(prev => {
+          const updated=[...prev];
+          data.nobids.forEach((bid:any)=>{
 
-          // Handle updates to existing bids
-          for (let i = 0; i < bidsAfterUpdate.length; i++) {
-            for (let j = 0; j < data.nobids.length; j++) {
-              if (bidsAfterUpdate[i].price === data.nobids[j].price) {
-                // Update quantity
-                bidsAfterUpdate[i].quantity = data.nobids[j].quantity;
-                // Remove if quantity is 0
-                if (bidsAfterUpdate[i].quantity === 0) {
-                  bidsAfterUpdate.splice(i, 1);
-                  i--; // Adjust index after removing item
-                }
-                break;
+            const index=updated.findIndex(
+              b=>b.price===bid.price
+            );
+
+            if(bid.quantity===0){
+
+              if(index!==-1){
+                updated.splice(index,1);
+              }
+
+            }else{
+              if(index!==-1){
+                updated[index].quantity=bid.quantity;
+              }else{
+                updated.push(bid);
               }
             }
-          }
-
-          // Add new bids
-          for (let j = 0; j < data.nobids.length; j++) {
-            const bidPrice = data.nobids[j].price;
-            const bidQuantity = data.nobids[j].quantity;
-
-            if (
-              bidQuantity !== 0 &&
-              !bidsAfterUpdate.some((bid) => bid.price === bidPrice)
-            ) {
-              bidsAfterUpdate.push({ price: bidPrice, quantity: bidQuantity });
-            }
-          }
-
-          // Sort bids (highest to lowest price)
-          bidsAfterUpdate.sort((a, b) => b.price - a.price);
-
-          return bidsAfterUpdate;
+          });
+          updated.sort((a,b)=>b.price-a.price);
+          return updated;
         });
-
-        setYesAsks((originalAsks) => {
-          const asksAfterUpdate = [...(originalAsks || [])];
-
-          // Handle updates to existing asks
-          for (let i = 0; i < asksAfterUpdate.length; i++) {
-            for (let j = 0; j < data.yesasks.length; j++) {
-              if (asksAfterUpdate[i].price === data.yesasks[j].price) {
-                // Update quantity
-                asksAfterUpdate[i].quantity = data.yesasks[j].quantity;
-                // Remove if quantity is 0
-                if (asksAfterUpdate[i].quantity === 0) {
-                  asksAfterUpdate.splice(i, 1);
-                  i--; // Adjust index after removing item
-                }
-                break;
+        setYesAsks(prev=>{
+          const updated=[...prev];
+          data.yesasks.forEach((ask:any)=>{
+            const index=updated.findIndex(
+              a=>a.price===ask.price
+            );
+            if(ask.quantity===0){
+              if(index!==-1){
+                updated.splice(index,1);
+              }
+            }else{
+              if(index!==-1){
+                updated[index].quantity=ask.quantity;
+              }else{
+                updated.push(ask);
               }
             }
-          }
-
-          // Add new asks
-          for (let j = 0; j < data.yesasks.length; j++) {
-            const askPrice = data.yesasks[j].price;
-            const askQuantity = data.yesasks[j].quantity;
-
-            if (
-              askQuantity !== 0 &&
-              !asksAfterUpdate.some((ask) => ask.price === askPrice)
-            ) {
-              asksAfterUpdate.push({ price: askPrice, quantity: askQuantity });
-            }
-          }
-
-          // Sort asks (lowest to highest price)
-          asksAfterUpdate.sort((a, b) => a.price - b.price);
-
-          return asksAfterUpdate;
+          });
+          updated.sort((a,b)=>a.price-b.price);
+          return updated;
         });
-        setNoAsks((originalAsks) => {
-          const asksAfterUpdate = [...(originalAsks || [])];
+        setNoAsks(prev=>{
 
-          // Handle updates to existing asks
-          for (let i = 0; i < asksAfterUpdate.length; i++) {
-            for (let j = 0; j < data.noasks.length; j++) {
-              if (asksAfterUpdate[i].price === data.noasks[j].price) {
-                // Update quantity
-                asksAfterUpdate[i].quantity = data.noasks[j].quantity;
-                // Remove if quantity is 0
-                if (asksAfterUpdate[i].quantity === 0) {
-                  asksAfterUpdate.splice(i, 1);
-                  i--; // Adjust index after removing item
-                }
-                break;
+          const updated=[...prev];
+          data.noasks.forEach((ask:any)=>{
+            const index=updated.findIndex(
+              a=>a.price===ask.price
+            );
+            if(ask.quantity===0){
+              if(index!==-1){
+                updated.splice(index,1);
+              }
+            }else{
+              if(index!==-1){
+                updated[index].quantity=ask.quantity;
+              }else{
+                updated.push(ask);
               }
             }
-          }
 
-          // Add new asks
-          for (let j = 0; j < data.noasks.length; j++) {
-            const askPrice = data.noasks[j].price;
-            const askQuantity = data.noasks[j].quantity;
-
-            if (
-              askQuantity !== 0 &&
-              !asksAfterUpdate.some((ask) => ask.price === askPrice)
-            ) {
-              asksAfterUpdate.push({ price: askPrice, quantity: askQuantity });
-            }
-          }
-
-          // Sort asks (lowest to highest price)
-          asksAfterUpdate.sort((a, b) => a.price - b.price);
-
-          return asksAfterUpdate;
+          });
+          updated.sort((a,b)=>a.price-b.price);
+          return updated;
         });
       },
       `DEPTH@${event.id}`
     );
 
-    SignalingManager.getInstance().sendMessage({
-      method: "SUBSCRIBE",
-      params: [`depth@${event.id}`],
-    });
+    getDepth(event.id).then((d)=>{
 
-    getDepth(event.id).then((d) => {
       setYesBids(d.YES.bids.reverse());
       setYesAsks(d.YES.asks);
       setNoBids(d.NO.bids.reverse());
       setNoAsks(d.NO.asks);
+  
     });
-
-    return () => {
-      SignalingManager.getInstance().sendMessage({
-        method: "UNSUBSCRIBE",
-        params: [`depth@${event.id}`],
-      });
-      SignalingManager.getInstance().deRegisterCallback(
+    return ()=>{
+      manager.deRegisterCallback(
         "depth",
-        `DEPTH-${event.id}`
+        `DEPTH@${event.id}`
       );
-    };
-  }, []);
+    }},[event.id]);
 
   return (
     <div className="bg-white border border-gray-200 p-6 rounded-2xl">
@@ -258,8 +191,8 @@ export const Depth = ({ event }: DepthProps) => {
           </div>
         </TabsContent>
 
-        <TabsContent value="trade">
-          <Trade event={event} />
+        <TabsContent value="trade" >
+          <Trade event={event}  />
         </TabsContent>
       </Tabs>
     </div>
