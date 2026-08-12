@@ -20,7 +20,7 @@
 
 ## 🚀 Overview
 
-**Predix** is a cutting-edge decentralized betting platform where users can predict outcomes and win instantly. Designed with a modern UI/UX, Predix allows users to participate in trade-based betting with ease and speed.
+**Predix** is a cutting-edge  betting platform where users can predict outcomes and win instantly. Designed with a modern UI/UX, Predix allows users to participate in trade-based betting with ease and speed.
 
 ---
 
